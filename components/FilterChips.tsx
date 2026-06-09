@@ -36,23 +36,23 @@ export function FilterChips({ selected = 'Kaikki', onSelect }: FilterChipsProps)
 
 const styles = StyleSheet.create({
   row: {
-    gap: 11,
-    paddingHorizontal: 18,
+    gap: 8,
+    paddingHorizontal: 16,
   },
   chip: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 253, 247, 0.93)',
-    borderColor: 'rgba(229, 218, 206, 0.78)',
+    backgroundColor: 'rgba(255, 253, 247, 0.92)',
+    borderColor: 'rgba(229, 218, 206, 0.72)',
     borderRadius: radii.pill,
     borderWidth: 1,
-    height: 44,
+    height: 36,
     justifyContent: 'center',
-    minWidth: 86,
-    paddingHorizontal: 18,
+    minWidth: 72,
+    paddingHorizontal: 13,
     shadowColor: '#000',
-    shadowOffset: { height: 5, width: 0 },
-    shadowOpacity: 0.05,
-    shadowRadius: 9,
+    shadowOffset: { height: 4, width: 0 },
+    shadowOpacity: 0.04,
+    shadowRadius: 7,
   },
   activeChip: {
     backgroundColor: colors.primary,
@@ -60,9 +60,9 @@ const styles = StyleSheet.create({
   },
   chipText: {
     color: '#5F665F',
-    fontSize: 14.5,
+    fontSize: 13,
     fontWeight: '600',
-    letterSpacing: -0.08,
+    letterSpacing: -0.06,
     textAlign: 'center',
   },
   activeChipText: {
