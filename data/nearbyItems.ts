@@ -10,8 +10,8 @@ export const nearbyItems: NearbyItem[] = [
     availability: 'Vapaa tänään',
     mode: 'borrow',
     priceLabel: 'Lainaa',
-    emoji: '🔩',
-    accentColor: '#DDEBDD',
+    imageUrl: 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=320&h=240&fit=crop&auto=format',
+    accentColor: '#EEF4EC',
   },
   {
     id: 'chairs-1',
@@ -22,8 +22,8 @@ export const nearbyItems: NearbyItem[] = [
     availability: 'Vapaa tänään',
     mode: 'rent',
     priceLabel: 'Vuokraa',
-    emoji: '🪑',
-    accentColor: '#E7F0DC',
+    imageUrl: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=320&h=240&fit=crop&auto=format',
+    accentColor: '#EEF5EA',
   },
   {
     id: 'suitcase-1',
@@ -34,8 +34,8 @@ export const nearbyItems: NearbyItem[] = [
     availability: 'Vapaa huomenna',
     mode: 'rent',
     priceLabel: 'Vuokraa',
-    emoji: '🧳',
-    accentColor: '#EAF1F3',
+    imageUrl: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=320&h=240&fit=crop&auto=format',
+    accentColor: '#EEF4F5',
   },
   {
     id: 'speaker-1',
@@ -46,8 +46,8 @@ export const nearbyItems: NearbyItem[] = [
     availability: 'Vapaa tänään',
     mode: 'swap',
     priceLabel: 'Vaihda',
-    emoji: '🔊',
-    accentColor: '#E7E3F3',
+    imageUrl: 'https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=320&h=240&fit=crop&auto=format',
+    accentColor: '#F0F2EA',
   },
 ];
 
