@@ -19,19 +19,20 @@ export default function TabsLayout() {
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '700',
+          fontSize: 13,
+          fontWeight: '800',
         },
         tabBarStyle: {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
-          height: 86,
+          borderTopWidth: 1,
+          height: 92,
           paddingBottom: 22,
           paddingTop: 10,
         },
         tabBarIcon: ({ color, size }) => {
           const iconName = tabIcons[route.name as keyof typeof tabIcons] ?? 'ellipse-outline';
-          return <Ionicons color={color} name={iconName} size={size} />;
+          return <Ionicons color={color} name={iconName} size={size + 3} />;
         },
       })}
     >
