@@ -12,10 +12,11 @@ type MapPinProps = {
 export function MapPin({ icon, left, top }: MapPinProps) {
   return (
     <View style={[styles.container, { left, top }]}> 
+      <View style={styles.tailBorder} />
+      <View style={styles.pinTail} />
       <View style={styles.pinBody}>
         <Ionicons color={colors.surface} name={icon} size={19} />
       </View>
-      <View style={styles.pinTail} />
     </View>
   );
 }
@@ -44,14 +45,24 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 10,
     width: 42,
-    zIndex: 2,
+    zIndex: 3,
+  },
+  tailBorder: {
+    backgroundColor: colors.surface,
+    height: 20,
+    position: 'absolute',
+    top: 28,
+    transform: [{ rotate: '45deg' }],
+    width: 20,
+    zIndex: 1,
   },
   pinTail: {
     backgroundColor: colors.primary,
-    borderBottomRightRadius: 3,
-    height: 18,
-    marginTop: -11,
+    height: 16,
+    position: 'absolute',
+    top: 29,
     transform: [{ rotate: '45deg' }],
-    width: 18,
+    width: 16,
+    zIndex: 2,
   },
 });
