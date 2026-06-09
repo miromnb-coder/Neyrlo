@@ -23,16 +23,16 @@ export function NearbyListPanel({ items: _items }: NearbyListPanelProps) {
   const animatedIndex = useSharedValue(1);
   const snapPoints = useMemo(() => ['18%', '47%', '76%'], []);
 
-  const cardTopAtMiddleSnap = height * 0.53 - 82;
+  const cardTopAtMiddleSnap = height * 0.53 - 96;
   const distanceFromLowerToMiddleSnap = height * 0.29;
 
   const floatingCardStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(animatedIndex.value, [1.55, 1.95], [1, 0], Extrapolation.CLAMP),
+    opacity: interpolate(animatedIndex.value, [1.12, 1.32], [1, 0], Extrapolation.CLAMP),
     transform: [
       {
         translateY: interpolate(
           animatedIndex.value,
-          [0, 1, 2],
+          [0, 1, 1.32],
           [distanceFromLowerToMiddleSnap, 0, 0],
           Extrapolation.CLAMP,
         ),
@@ -83,8 +83,8 @@ const styles = StyleSheet.create({
   },
   floatingCard: {
     position: 'absolute',
-    right: 30,
-    zIndex: 19,
+    right: 20,
+    zIndex: 18,
   },
   handleIndicator: {
     backgroundColor: '#CFC5BA',
