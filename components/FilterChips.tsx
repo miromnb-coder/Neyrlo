@@ -26,7 +26,7 @@ export function FilterChips({ selected = 'Kaikki', onSelect }: FilterChipsProps)
             onPress={() => onSelect?.(filter)}
             style={[styles.chip, active && styles.activeChip]}
           >
-            <Text style={[styles.chipText, active && styles.activeChipText]}>{filter}</Text>
+            <Text allowFontScaling={false} style={[styles.chipText, active && styles.activeChipText]}>{filter}</Text>
           </Pressable>
         );
       })}
@@ -36,21 +36,21 @@ export function FilterChips({ selected = 'Kaikki', onSelect }: FilterChipsProps)
 
 const styles = StyleSheet.create({
   row: {
-    gap: spacing.md,
-    paddingHorizontal: spacing.xl,
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
   },
   chip: {
     backgroundColor: 'rgba(255, 253, 247, 0.94)',
     borderColor: colors.border,
     borderRadius: radii.pill,
     borderWidth: 1,
-    minWidth: 96,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    minWidth: 84,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
     shadowColor: '#000',
-    shadowOffset: { height: 5, width: 0 },
-    shadowOpacity: 0.07,
-    shadowRadius: 10,
+    shadowOffset: { height: 4, width: 0 },
+    shadowOpacity: 0.055,
+    shadowRadius: 8,
   },
   activeChip: {
     backgroundColor: colors.primary,
@@ -58,11 +58,12 @@ const styles = StyleSheet.create({
   },
   chipText: {
     color: colors.textMuted,
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: 14.5,
+    fontWeight: '700',
     textAlign: 'center',
   },
   activeChipText: {
     color: colors.surface,
+    fontWeight: '800',
   },
 });
