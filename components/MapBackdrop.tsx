@@ -121,7 +121,7 @@ export function MapBackdrop() {
         pitchEnabled={false}
         provider={mapProvider}
         rotateEnabled={false}
-        scrollEnabled={false}
+        scrollEnabled
         showsBuildings={false}
         showsCompass={false}
         showsIndoors={false}
@@ -131,7 +131,7 @@ export function MapBackdrop() {
         showsTraffic={false}
         style={StyleSheet.absoluteFill}
         toolbarEnabled={false}
-        zoomEnabled={false}
+        zoomEnabled
       >
         <Circle
           center={mapCenter}
@@ -157,7 +157,6 @@ export function MapBackdrop() {
       </MapView>
       <View pointerEvents="none" style={styles.mapWash} />
       <View pointerEvents="none" style={styles.topWhiteWash} />
-      <View pointerEvents="none" style={styles.topWhiteFade} />
     </View>
   );
 }
@@ -176,17 +175,8 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   topWhiteWash: {
-    backgroundColor: 'rgba(255, 253, 247, 0.58)',
-    height: 178,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    zIndex: 2,
-  },
-  topWhiteFade: {
-    backgroundColor: 'rgba(255, 253, 247, 0.2)',
-    height: 292,
+    backgroundColor: 'rgba(255, 253, 247, 0.48)',
+    height: 245,
     left: 0,
     position: 'absolute',
     right: 0,
