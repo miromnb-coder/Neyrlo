@@ -1,6 +1,6 @@
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 
-import { colors, radii, spacing } from '@/constants/theme';
+import { colors, radii } from '@/constants/theme';
 import { filters } from '@/data/nearbyItems';
 
 type FilterChipsProps = {
@@ -36,19 +36,21 @@ export function FilterChips({ selected = 'Kaikki', onSelect }: FilterChipsProps)
 
 const styles = StyleSheet.create({
   row: {
-    gap: spacing.sm,
-    paddingHorizontal: spacing.lg,
+    gap: 11,
+    paddingHorizontal: 18,
   },
   chip: {
+    alignItems: 'center',
     backgroundColor: 'rgba(255, 253, 247, 0.93)',
-    borderColor: 'rgba(229, 218, 206, 0.86)',
+    borderColor: 'rgba(229, 218, 206, 0.78)',
     borderRadius: radii.pill,
     borderWidth: 1,
-    minWidth: 82,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
+    height: 44,
+    justifyContent: 'center',
+    minWidth: 86,
+    paddingHorizontal: 18,
     shadowColor: '#000',
-    shadowOffset: { height: 4, width: 0 },
+    shadowOffset: { height: 5, width: 0 },
     shadowOpacity: 0.05,
     shadowRadius: 9,
   },
@@ -57,13 +59,14 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   chipText: {
-    color: '#666C64',
-    fontSize: 14,
-    fontWeight: '700',
+    color: '#5F665F',
+    fontSize: 14.5,
+    fontWeight: '600',
+    letterSpacing: -0.08,
     textAlign: 'center',
   },
   activeChipText: {
     color: colors.surface,
-    fontWeight: '800',
+    fontWeight: '700',
   },
 });
