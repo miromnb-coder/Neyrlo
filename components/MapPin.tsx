@@ -5,17 +5,15 @@ import { colors } from '@/constants/theme';
 
 type MapPinProps = {
   icon: keyof typeof Ionicons.glyphMap;
-  left: `${number}%`;
-  top: `${number}%`;
 };
 
-export function MapPin({ icon, left, top }: MapPinProps) {
+export function MapPin({ icon }: MapPinProps) {
   return (
-    <View style={[styles.container, { left, top }]}> 
+    <View style={styles.container}>
       <View style={styles.tailBorder} />
       <View style={styles.pinTail} />
       <View style={styles.pinBody}>
-        <Ionicons color={colors.surface} name={icon} size={19} />
+        <Ionicons color={colors.surface} name={icon} size={18} />
       </View>
     </View>
   );
@@ -24,45 +22,43 @@ export function MapPin({ icon, left, top }: MapPinProps) {
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
-    height: 58,
+    height: 52,
     justifyContent: 'flex-start',
-    marginLeft: -21,
-    marginTop: -52,
-    position: 'absolute',
     width: 42,
-    zIndex: 3,
   },
   pinBody: {
     alignItems: 'center',
     backgroundColor: colors.primary,
     borderColor: colors.surface,
-    borderRadius: 21,
+    borderRadius: 20,
     borderWidth: 3,
-    height: 42,
+    height: 40,
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { height: 7, width: 0 },
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
-    width: 42,
+    shadowOpacity: 0.17,
+    shadowRadius: 11,
+    width: 40,
     zIndex: 3,
   },
   tailBorder: {
     backgroundColor: colors.surface,
-    height: 20,
+    borderBottomRightRadius: 3,
+    height: 19,
     position: 'absolute',
-    top: 28,
+    top: 27,
     transform: [{ rotate: '45deg' }],
-    width: 20,
+    width: 19,
     zIndex: 1,
   },
   pinTail: {
     backgroundColor: colors.primary,
-    height: 16,
+    borderBottomRightRadius: 2,
+    height: 14,
     position: 'absolute',
-    top: 29,
+    top: 28,
     transform: [{ rotate: '45deg' }],
-    width: 16,
+    width: 14,
     zIndex: 2,
   },
 });
