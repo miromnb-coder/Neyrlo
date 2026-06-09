@@ -10,7 +10,9 @@ export function BottomSheetHeader() {
         <Text style={styles.title}>Lähellä sinua</Text>
         <View style={styles.liveDot} />
       </View>
-      <Text style={styles.subtitle}>Lainaa, vuokraa, vaihda tai anna. Kaikki läheltä.</Text>
+      <Text numberOfLines={1} style={styles.subtitle}>
+        Lainaa, vuokraa, vaihda tai anna. Kaikki läheltä.
+      </Text>
     </View>
   );
 }
@@ -23,9 +25,9 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     backgroundColor: '#D1C6B9',
     borderRadius: radii.pill,
-    height: 6,
-    marginBottom: spacing.xl,
-    width: 46,
+    height: 5,
+    marginBottom: spacing.md,
+    width: 44,
   },
   titleRow: {
     alignItems: 'center',
@@ -34,22 +36,22 @@ const styles = StyleSheet.create({
   },
   title: {
     color: colors.primary,
-    fontSize: 29,
+    fontSize: 24,
     fontWeight: '900',
-    letterSpacing: -0.5,
+    letterSpacing: -0.3,
   },
   liveDot: {
     backgroundColor: colors.primary,
-    borderRadius: 7,
-    height: 14,
-    marginTop: 4,
-    width: 14,
+    borderRadius: 5,
+    height: 10,
+    marginTop: 3,
+    width: 10,
   },
   subtitle: {
     color: colors.textMuted,
-    fontSize: 17,
+    fontSize: 13,
     fontWeight: '700',
-    lineHeight: 24,
-    marginTop: spacing.sm,
+    lineHeight: 18,
+    marginTop: 3,
   },
 });
