@@ -1,27 +1,36 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import {
+  Image,
+  type ImageSourcePropType,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 
 import { FilterChips } from '@/components/FilterChips';
 import { SearchOverlay } from '@/components/SearchOverlay';
 import { colors, radii } from '@/constants/theme';
 import { filters, nearbyItems } from '@/data/nearbyItems';
 
-const categories = [
+const categories: { id: string; title: string; image: ImageSourcePropType }[] = [
   {
     id: 'tools',
     title: 'Työkalut',
-    imageUrl: nearbyItems[0].imageUrl,
+    image: require('../../assets/images/categories/category-tools.PNG'),
   },
   {
     id: 'outdoor',
     title: 'Ulkoilu',
-    imageUrl: 'https://images.unsplash.com/photo-1523987355523-c7b5b0dd90a7?w=360&h=280&fit=crop&auto=format',
+    image: require('../../assets/images/categories/category-outdoor.PNG'),
   },
   {
     id: 'travel',
     title: 'Matkustus',
-    imageUrl: nearbyItems[2].imageUrl,
+    image: require('../../assets/images/categories/category-travel.PNG'),
   },
 ];
 
@@ -134,7 +143,7 @@ export default function BrowseScreen() {
                 onPress={() => setSelectedCategory(category.id)}
                 style={[styles.categoryCard, { width: categoryCardWidth }, selected && styles.selectedCategoryCard]}
               >
-                <Image source={{ uri: category.imageUrl }} style={styles.categoryImage} />
+                <Image source={category.image} style={styles.categoryImage} />
                 <Text allowFontScaling={false} style={styles.categoryTitle}>{category.title}</Text>
               </Pressable>
             );
@@ -266,9 +275,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     height: 126,
     justifyContent: 'space-between',
-    paddingBottom: 14,
-    paddingHorizontal: 7,
-    paddingTop: 12,
+    paddingBottom: 13,
+    paddingHorizontal: 6,
+    paddingTop: 7,
     shadowColor: '#000',
     shadowOffset: { height: 3, width: 0 },
     shadowOpacity: 0.02,
@@ -278,7 +287,7 @@ const styles = StyleSheet.create({
     borderColor: '#5C7F53',
   },
   categoryImage: {
-    height: 72,
+    height: 79,
     resizeMode: 'contain',
     width: '100%',
   },
