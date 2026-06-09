@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
   chipText: {
     color: '#666C64',
     fontSize: 14,
-    fontWeight: '650',
+    fontWeight: '700',
     textAlign: 'center',
   },
   activeChipText: {
