@@ -1,13 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const BRAND_GREEN = '#304327';
-const PRIMARY_GREEN = '#1E7A56';
 const TEXT_MUTED = '#626A69';
 const FIELD_BORDER = '#405936';
 const BACKGROUND = '#FFFDF7';
+const GOOGLE_ICON_URL = 'https://developers.google.com/identity/images/g-logo.png';
 
 export default function AuthLandingScreen() {
   const router = useRouter();
@@ -22,12 +22,12 @@ export default function AuthLandingScreen() {
 
         <View style={styles.actions}>
           <Pressable style={({ pressed }) => [styles.appleButton, pressed && styles.pressed]}>
-            <Ionicons color="#FFFFFF" name="logo-apple" size={31} />
+            <Ionicons color="#FFFFFF" name="logo-apple" size={28} />
             <Text allowFontScaling={false} style={styles.appleText}>Jatka Apple-tilillä</Text>
           </Pressable>
 
           <Pressable style={({ pressed }) => [styles.googleButton, pressed && styles.pressed]}>
-            <Ionicons color="#4285F4" name="logo-google" size={29} />
+            <Image source={{ uri: GOOGLE_ICON_URL }} style={styles.googleIcon} />
             <Text allowFontScaling={false} style={styles.googleText}>Jatka Google-tilillä</Text>
           </Pressable>
 
@@ -68,35 +68,36 @@ const styles = StyleSheet.create({
   },
   brandArea: {
     alignItems: 'center',
-    marginTop: 300,
+    marginTop: 216,
   },
   logo: {
     color: BRAND_GREEN,
     fontFamily: serifFont,
-    fontSize: 78,
+    fontSize: 73,
     fontWeight: Platform.OS === 'ios' ? '500' : '400',
-    letterSpacing: -2.4,
-    lineHeight: 88,
+    letterSpacing: -2.2,
+    lineHeight: 82,
   },
   slogan: {
     color: TEXT_MUTED,
-    fontSize: 24,
+    fontSize: 21.5,
     fontWeight: '500',
-    letterSpacing: -0.3,
+    letterSpacing: -0.25,
+    lineHeight: 29,
     marginTop: 13,
     textAlign: 'center',
   },
   actions: {
-    marginTop: 80,
+    marginTop: 62,
     width: '100%',
   },
   appleButton: {
     alignItems: 'center',
     backgroundColor: '#0D0E0E',
-    borderRadius: 15,
+    borderRadius: 14,
     flexDirection: 'row',
-    gap: 19,
-    height: 72,
+    gap: 17,
+    height: 66,
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { height: 6, width: 0 },
@@ -105,68 +106,72 @@ const styles = StyleSheet.create({
   },
   appleText: {
     color: '#FFFFFF',
-    fontSize: 24,
+    fontSize: 21.5,
     fontWeight: '700',
-    letterSpacing: -0.25,
+    letterSpacing: -0.2,
   },
   googleButton: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 253, 247, 0.72)',
+    backgroundColor: 'rgba(255, 253, 247, 0.75)',
     borderColor: FIELD_BORDER,
-    borderRadius: 15,
+    borderRadius: 14,
     borderWidth: 1,
     flexDirection: 'row',
-    gap: 20,
-    height: 72,
+    gap: 19,
+    height: 66,
     justifyContent: 'center',
-    marginTop: 28,
+    marginTop: 24,
+  },
+  googleIcon: {
+    height: 29,
+    width: 29,
   },
   googleText: {
     color: BRAND_GREEN,
-    fontSize: 24,
+    fontSize: 21.5,
     fontWeight: '700',
-    letterSpacing: -0.25,
+    letterSpacing: -0.2,
   },
   dividerRow: {
     alignItems: 'center',
     flexDirection: 'row',
     gap: 25,
     marginHorizontal: 32,
-    marginTop: 42,
+    marginTop: 37,
   },
   divider: {
-    backgroundColor: 'rgba(99, 99, 91, 0.22)',
+    backgroundColor: 'rgba(99, 99, 91, 0.2)',
     flex: 1,
     height: 1,
   },
   dividerText: {
     color: TEXT_MUTED,
-    fontSize: 21,
+    fontSize: 19,
     fontWeight: '600',
   },
   emailButton: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 253, 247, 0.72)',
+    backgroundColor: 'rgba(255, 253, 247, 0.75)',
     borderColor: FIELD_BORDER,
-    borderRadius: 15,
+    borderRadius: 14,
     borderWidth: 1,
-    height: 74,
+    height: 67,
     justifyContent: 'center',
-    marginTop: 40,
+    marginTop: 34,
   },
   emailText: {
     color: BRAND_GREEN,
-    fontSize: 24,
+    fontSize: 21.5,
     fontWeight: '700',
-    letterSpacing: -0.2,
+    letterSpacing: -0.18,
   },
   legalText: {
-    bottom: 44,
+    bottom: 38,
     color: '#7E8584',
-    fontSize: 14.5,
+    fontSize: 13.2,
     fontWeight: '500',
     left: 36,
-    lineHeight: 21,
+    lineHeight: 19,
     position: 'absolute',
     right: 36,
     textAlign: 'center',
