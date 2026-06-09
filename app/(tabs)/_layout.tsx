@@ -1,69 +1,106 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '@/constants/theme';
 
-const tabIcons = {
+const tabItems = {
   index: {
-    active: 'location',
-    inactive: 'location-outline',
+    activeIcon: 'location',
+    inactiveIcon: 'location-outline',
+    label: 'Kartta',
   },
   browse: {
-    active: 'grid',
-    inactive: 'grid-outline',
+    activeIcon: 'grid',
+    inactiveIcon: 'grid-outline',
+    label: 'Selaa',
   },
   add: {
-    active: 'add-circle',
-    inactive: 'add-circle-outline',
+    activeIcon: 'add-circle',
+    inactiveIcon: 'add-circle-outline',
+    label: 'Lisää',
   },
   messages: {
-    active: 'chatbubble',
-    inactive: 'chatbubble-outline',
+    activeIcon: 'chatbubble',
+    inactiveIcon: 'chatbubble-outline',
+    label: 'Viestit',
   },
   profile: {
-    active: 'person',
-    inactive: 'person-outline',
+    activeIcon: 'person',
+    inactiveIcon: 'person-outline',
+    label: 'Profiili',
   },
 } as const;
+
+type TabRouteName = keyof typeof tabItems;
+
+type TabBarProps = {
+  descriptors: Record<string, { options: { title?: string } }>;
+  navigation: {
+    emit: (event: { canPreventDefault?: boolean; target: string; type: string }) => { defaultPrevented?: boolean };
+    navigate: (name: string) => void;
+  };
+  state: {
+    index: number;
+    routes: { key: string; name: string }[];
+  };
+};
+
+function NeyrloTabBar({ descriptors, navigation, state }: TabBarProps) {
+  return (
+    <View style={styles.tabBar}>
+      {state.routes.map((route, index) => {
+        const focused = state.index === index;
+        const config = tabItems[route.name as TabRouteName];
+        const options = descriptors[route.key]?.options;
+        const label = config?.label ?? options?.title ?? route.name;
+        const iconName = (focused ? config?.activeIcon : config?.inactiveIcon) ?? 'ellipse-outline';
+        const color = focused ? colors.primary : '#697068';
+
+        const onPress = () => {
+          const event = navigation.emit({
+            canPreventDefault: true,
+            target: route.key,
+            type: 'tabPress',
+          });
+
+          if (!focused && !event.defaultPrevented) {
+            navigation.navigate(route.name);
+          }
+        };
+
+        return (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={focused ? { selected: true } : {}}
+            key={route.key}
+            onPress={onPress}
+            style={({ pressed }) => [styles.tabButton, pressed && styles.tabButtonPressed]}
+          >
+            <View style={styles.iconSlot}>
+              <Ionicons
+                color={color}
+                name={iconName as keyof typeof Ionicons.glyphMap}
+                size={focused ? 31 : 30}
+              />
+            </View>
+            <Text allowFontScaling={false} style={[styles.tabLabel, focused && styles.activeTabLabel]}>
+              {label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
 
 export default function TabsLayout() {
   return (
     <Tabs
-      screenOptions={({ route }) => ({
+      screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: '#697068',
-        tabBarItemStyle: {
-          paddingTop: 3,
-        },
-        tabBarLabelStyle: {
-          fontSize: 13,
-          fontWeight: '800',
-          lineHeight: 17,
-        },
-        tabBarStyle: {
-          backgroundColor: 'rgba(255, 253, 247, 0.98)',
-          borderTopColor: 'rgba(229, 218, 206, 0.95)',
-          borderTopWidth: 1,
-          elevation: 0,
-          height: 92,
-          paddingBottom: 20,
-          paddingTop: 8,
-          shadowColor: '#000',
-          shadowOffset: { height: -3, width: 0 },
-          shadowOpacity: 0.03,
-          shadowRadius: 10,
-        },
-        tabBarIcon: ({ color, focused }) => {
-          const iconSet = tabIcons[route.name as keyof typeof tabIcons] ?? {
-            active: 'ellipse',
-            inactive: 'ellipse-outline',
-          };
-          const iconName = focused ? iconSet.active : iconSet.inactive;
-
-          return <Ionicons color={color} name={iconName} size={focused ? 31 : 30} />;
-        },
-      })}
+      }}
+      tabBar={(props) => <NeyrloTabBar {...props} />}
     >
       <Tabs.Screen name="index" options={{ title: 'Kartta' }} />
       <Tabs.Screen name="browse" options={{ title: 'Selaa' }} />
@@ -73,3 +110,51 @@ export default function TabsLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBar: {
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(255, 253, 247, 0.99)',
+    borderTopColor: 'rgba(229, 218, 206, 0.96)',
+    borderTopWidth: 1,
+    bottom: 0,
+    elevation: 0,
+    flexDirection: 'row',
+    height: 93,
+    justifyContent: 'space-between',
+    left: 0,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 14,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    position: 'absolute',
+    right: 0,
+    shadowColor: '#000',
+    shadowOffset: { height: -2, width: 0 },
+    shadowOpacity: 0.025,
+    shadowRadius: 9,
+  },
+  tabButton: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'flex-start',
+  },
+  tabButtonPressed: {
+    opacity: 0.78,
+  },
+  iconSlot: {
+    alignItems: 'center',
+    height: 35,
+    justifyContent: 'center',
+    marginBottom: 1,
+  },
+  tabLabel: {
+    color: '#697068',
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: -0.12,
+    lineHeight: 17,
+  },
+  activeTabLabel: {
+    color: colors.primary,
+  },
+});
