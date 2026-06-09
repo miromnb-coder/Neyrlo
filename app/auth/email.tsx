@@ -22,13 +22,13 @@ export default function EmailAuthScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Pressable hitSlop={14} onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
-          <Ionicons color="#38403E" name="arrow-back-outline" size={32} />
+          <Ionicons color="#38403E" name="arrow-back-outline" size={31} />
         </Pressable>
 
         <Text allowFontScaling={false} style={styles.smallLogo}>Neyrlo</Text>
 
         <View style={styles.header}>
-          <Text allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82} style={styles.title}>
+          <Text allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={styles.title}>
             Jatka sähköpostilla
           </Text>
           <Text allowFontScaling={false} style={styles.subtitle}>Kirjaudu sisään tai luo tili sähköpostilla.</Text>
@@ -36,7 +36,7 @@ export default function EmailAuthScreen() {
 
         <View style={styles.form}>
           <View style={styles.inputBox}>
-            <Ionicons color="#424946" name="mail-outline" size={29} />
+            <Ionicons color="#424946" name="mail-outline" size={27} />
             <TextInput
               autoCapitalize="none"
               autoCorrect={false}
@@ -48,14 +48,14 @@ export default function EmailAuthScreen() {
           </View>
 
           <View style={styles.inputBox}>
-            <Ionicons color="#424946" name="lock-closed-outline" size={29} />
+            <Ionicons color="#424946" name="lock-closed-outline" size={27} />
             <TextInput
               placeholder="Salasana"
               placeholderTextColor={PLACEHOLDER}
               secureTextEntry
               style={styles.input}
             />
-            <Ionicons color="#424946" name="eye-outline" size={30} />
+            <Ionicons color="#424946" name="eye-outline" size={29} />
           </View>
 
           <Pressable style={({ pressed }) => pressed && styles.pressed}>
@@ -64,7 +64,7 @@ export default function EmailAuthScreen() {
 
           <Pressable style={({ pressed }) => [styles.termsRow, pressed && styles.pressed]}>
             <View style={styles.checkbox} />
-            <Text allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.86} style={styles.termsText}>
+            <Text allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82} style={styles.termsText}>
               Hyväksyn <Text style={styles.termsLink}>käyttöehdot</Text> ja <Text style={styles.termsLink}>tietosuojakäytännön</Text>
             </Text>
           </Pressable>
@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
-    paddingBottom: 46,
+    paddingBottom: 38,
     paddingHorizontal: 36,
   },
   backButton: {
@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     left: 27,
     position: 'absolute',
-    top: 77,
+    top: 70,
     width: 44,
     zIndex: 5,
   },
@@ -111,36 +111,36 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     color: BRAND_GREEN,
     fontFamily: serifFont,
-    fontSize: 35,
+    fontSize: 34,
     fontWeight: Platform.OS === 'ios' ? '500' : '400',
     letterSpacing: -0.7,
-    marginTop: 123,
+    marginTop: 102,
   },
   header: {
     alignItems: 'center',
-    marginTop: 142,
+    marginTop: 104,
   },
   title: {
     color: BRAND_GREEN,
     fontFamily: serifFont,
-    fontSize: 46,
+    fontSize: 42,
     fontWeight: Platform.OS === 'ios' ? '500' : '400',
-    letterSpacing: -1.1,
-    lineHeight: 56,
+    letterSpacing: -1,
+    lineHeight: 51,
     textAlign: 'center',
     width: '100%',
   },
   subtitle: {
     color: TEXT_MUTED,
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '500',
-    letterSpacing: -0.15,
-    lineHeight: 25,
-    marginTop: 31,
+    letterSpacing: -0.12,
+    lineHeight: 24,
+    marginTop: 24,
     textAlign: 'center',
   },
   form: {
-    marginTop: 57,
+    marginTop: 47,
   },
   inputBox: {
     alignItems: 'center',
@@ -149,45 +149,45 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     flexDirection: 'row',
-    gap: 21,
-    height: 76,
-    marginBottom: 34,
-    paddingHorizontal: 25,
+    gap: 20,
+    height: 70,
+    marginBottom: 30,
+    paddingHorizontal: 24,
   },
   input: {
     color: '#222A27',
     flex: 1,
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '500',
     padding: 0,
   },
   forgotText: {
     color: '#26302C',
-    fontSize: 15,
+    fontSize: 14.5,
     fontWeight: '500',
-    marginLeft: 19,
-    marginTop: -18,
+    marginLeft: 18,
+    marginTop: -15,
   },
   termsRow: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 19,
-    marginTop: 55,
-    paddingHorizontal: 21,
+    gap: 17,
+    marginTop: 43,
+    paddingHorizontal: 20,
   },
   checkbox: {
     borderColor: FIELD_BORDER,
     borderRadius: 6,
     borderWidth: 1.5,
-    height: 32,
-    width: 32,
+    height: 30,
+    width: 30,
   },
   termsText: {
     color: '#4E5552',
     flex: 1,
-    fontSize: 16.5,
+    fontSize: 15.5,
     fontWeight: '500',
-    lineHeight: 24,
+    lineHeight: 22,
   },
   termsLink: {
     color: BRAND_GREEN,
@@ -197,9 +197,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: CTA_GREEN,
     borderRadius: 13,
-    height: 68,
+    height: 64,
     justifyContent: 'center',
-    marginTop: 49,
+    marginTop: 40,
     shadowColor: '#000',
     shadowOffset: { height: 7, width: 0 },
     shadowOpacity: 0.08,
@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
   },
   continueText: {
     color: '#FFFFFF',
-    fontSize: 23,
+    fontSize: 22,
     fontWeight: '500',
     letterSpacing: -0.15,
   },
@@ -216,16 +216,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     justifyContent: 'center',
-    marginTop: 38,
+    marginTop: 30,
   },
   bottomText: {
     color: TEXT_MUTED,
-    fontSize: 16.2,
+    fontSize: 15.7,
     fontWeight: '500',
   },
   bottomLink: {
     color: BRAND_GREEN,
-    fontSize: 16.2,
+    fontSize: 15.7,
     fontWeight: '600',
   },
   pressed: {
