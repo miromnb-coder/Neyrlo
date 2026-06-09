@@ -1,16 +1,16 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, radii, spacing } from '@/constants/theme';
+import { colors, radii } from '@/constants/theme';
 
 export function BottomSheetHeader() {
   return (
     <View style={styles.container}>
       <View style={styles.handle} />
       <View style={styles.titleRow}>
-        <Text style={styles.title}>Lähellä sinua</Text>
+        <Text allowFontScaling={false} style={styles.title}>Lähellä sinua</Text>
         <View style={styles.liveDot} />
       </View>
-      <Text numberOfLines={1} style={styles.subtitle}>
+      <Text allowFontScaling={false} numberOfLines={1} style={styles.subtitle}>
         Lainaa, vuokraa, vaihda tai anna. Kaikki läheltä.
       </Text>
     </View>
@@ -19,26 +19,26 @@ export function BottomSheetHeader() {
 
 const styles = StyleSheet.create({
   container: {
-    paddingBottom: spacing.md,
+    paddingBottom: 12,
   },
   handle: {
     alignSelf: 'center',
-    backgroundColor: '#D1C6B9',
+    backgroundColor: '#D0C6BA',
     borderRadius: radii.pill,
     height: 5,
-    marginBottom: spacing.md,
+    marginBottom: 14,
     width: 44,
   },
   titleRow: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: spacing.sm,
+    gap: 8,
   },
   title: {
     color: colors.primary,
-    fontSize: 24,
+    fontSize: 23,
     fontWeight: '900',
-    letterSpacing: -0.3,
+    letterSpacing: -0.25,
   },
   liveDot: {
     backgroundColor: colors.primary,
@@ -50,8 +50,8 @@ const styles = StyleSheet.create({
   subtitle: {
     color: colors.textMuted,
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '600',
     lineHeight: 18,
-    marginTop: 3,
+    marginTop: 4,
   },
 });
