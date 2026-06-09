@@ -28,9 +28,7 @@ export default function EmailAuthScreen() {
         <Text allowFontScaling={false} style={styles.smallLogo}>Neyrlo</Text>
 
         <View style={styles.header}>
-          <Text allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={styles.title}>
-            Jatka sähköpostilla
-          </Text>
+          <Text allowFontScaling={false} style={styles.title}>Jatka sähköpostilla</Text>
           <Text allowFontScaling={false} style={styles.subtitle}>Kirjaudu sisään tai luo tili sähköpostilla.</Text>
         </View>
 
@@ -123,10 +121,10 @@ const styles = StyleSheet.create({
   title: {
     color: BRAND_GREEN,
     fontFamily: serifFont,
-    fontSize: 40,
+    fontSize: 37,
     fontWeight: Platform.OS === 'ios' ? '500' : '400',
-    letterSpacing: -0.95,
-    lineHeight: 48,
+    letterSpacing: -0.7,
+    lineHeight: 45,
     textAlign: 'center',
     width: '100%',
   },
