@@ -81,7 +81,7 @@ function NeyrloTabBar({ descriptors, navigation, state }: TabBarProps) {
               <Ionicons
                 color={color}
                 name={iconName as keyof typeof Ionicons.glyphMap}
-                size={focused ? 27 : 26}
+                size={focused ? 26 : 25}
               />
             </View>
             <Text allowFontScaling={false} style={[styles.tabLabel, focused && styles.activeTabLabel]}>
@@ -114,24 +114,20 @@ export default function TabsLayout() {
 const styles = StyleSheet.create({
   tabBar: {
     alignItems: 'flex-start',
-    backgroundColor: 'rgba(255, 253, 247, 0.99)',
-    borderTopColor: 'rgba(229, 218, 206, 0.62)',
-    borderTopWidth: 1,
+    backgroundColor: '#FFFDF7',
+    borderTopWidth: 0,
     bottom: 0,
     elevation: 0,
     flexDirection: 'row',
-    height: 86,
+    height: 84,
     justifyContent: 'space-between',
     left: 0,
-    paddingBottom: Platform.OS === 'ios' ? 18 : 12,
+    paddingBottom: Platform.OS === 'ios' ? 17 : 12,
     paddingHorizontal: 12,
-    paddingTop: 7,
+    paddingTop: 8,
     position: 'absolute',
     right: 0,
-    shadowColor: '#000',
-    shadowOffset: { height: -2, width: 0 },
-    shadowOpacity: 0.018,
-    shadowRadius: 8,
+    shadowOpacity: 0,
   },
   tabButton: {
     alignItems: 'center',
@@ -143,15 +139,15 @@ const styles = StyleSheet.create({
   },
   iconSlot: {
     alignItems: 'center',
-    height: 30,
+    height: 28,
     justifyContent: 'center',
-    marginBottom: 0,
+    marginBottom: -1,
   },
   tabLabel: {
     color: '#697068',
-    fontSize: 12,
+    fontSize: 11.8,
     fontWeight: '700',
-    letterSpacing: -0.08,
+    letterSpacing: -0.06,
     lineHeight: 15,
   },
   activeTabLabel: {
