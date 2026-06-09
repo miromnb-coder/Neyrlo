@@ -155,8 +155,7 @@ export function MapBackdrop() {
           </Marker>
         ))}
       </MapView>
-      <View pointerEvents="none" style={styles.mapWash} />
-      <View pointerEvents="none" style={styles.topWhiteWash} />
+      <View pointerEvents="none" style={styles.singleMapWash} />
     </View>
   );
 }
@@ -169,19 +168,10 @@ const styles = StyleSheet.create({
     position: 'relative',
     width: '100%',
   },
-  mapWash: {
+  singleMapWash: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255, 253, 247, 0.24)',
+    backgroundColor: 'rgba(255, 253, 247, 0.32)',
     zIndex: 1,
-  },
-  topWhiteWash: {
-    backgroundColor: 'rgba(255, 253, 247, 0.48)',
-    height: 245,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    zIndex: 2,
   },
   currentLocationDot: {
     backgroundColor: '#2C8CDD',
