@@ -19,14 +19,14 @@ export function BottomSheetHeader() {
 
 const styles = StyleSheet.create({
   container: {
-    paddingBottom: 9,
+    paddingBottom: 8,
   },
   handle: {
     alignSelf: 'center',
-    backgroundColor: '#CEC4B8',
+    backgroundColor: '#CFC5BA',
     borderRadius: radii.pill,
     height: 4,
-    marginBottom: 12,
+    marginBottom: 11,
     width: 40,
   },
   titleRow: {
@@ -36,23 +36,23 @@ const styles = StyleSheet.create({
   },
   title: {
     color: colors.primary,
-    fontSize: 21,
+    fontSize: 20,
     fontWeight: '900',
-    letterSpacing: -0.2,
+    letterSpacing: -0.18,
   },
   liveDot: {
     backgroundColor: colors.primary,
     borderRadius: 4,
     height: 8,
     marginTop: 2,
-    opacity: 0.9,
+    opacity: 0.86,
     width: 8,
   },
   subtitle: {
     color: colors.textMuted,
-    fontSize: 12,
+    fontSize: 11.8,
     fontWeight: '600',
-    lineHeight: 16,
+    lineHeight: 15.5,
     marginTop: 3,
   },
 });
