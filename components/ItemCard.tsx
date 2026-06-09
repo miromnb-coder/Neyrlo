@@ -17,7 +17,7 @@ export function ItemCard({ item, onPress }: ItemCardProps) {
       onPress={() => onPress?.(item)}
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
     >
-      <View style={[styles.thumbnail, { backgroundColor: item.accentColor }]}>
+      <View style={[styles.thumbnail, { backgroundColor: item.accentColor }]}> 
         <Image source={{ uri: item.imageUrl }} style={styles.image} />
       </View>
 
@@ -32,12 +32,12 @@ export function ItemCard({ item, onPress }: ItemCardProps) {
 
         <View style={styles.metaRow}>
           <View style={styles.metaItem}>
-            <Ionicons color={colors.textMuted} name="location-outline" size={14} />
+            <Ionicons color={colors.textMuted} name="location-outline" size={12} />
             <Text allowFontScaling={false} style={styles.metaText}>{item.distanceKm.toFixed(1).replace('.', ',')} km</Text>
           </View>
 
           <View style={styles.metaItem}>
-            <Ionicons color={colors.textMuted} name="calendar-outline" size={14} />
+            <Ionicons color={colors.textMuted} name="calendar-outline" size={12} />
             <Text allowFontScaling={false} numberOfLines={1} style={styles.metaText}>
               {item.availability}
             </Text>
@@ -46,7 +46,7 @@ export function ItemCard({ item, onPress }: ItemCardProps) {
       </View>
 
       <View style={styles.rightColumn}>
-        <Ionicons color={colors.primary} name="heart-outline" size={22} />
+        <Ionicons color={colors.primary} name="heart-outline" size={20} />
         <View style={styles.actionButton}>
           <Text allowFontScaling={false} style={styles.actionText}>{item.priceLabel}</Text>
         </View>
@@ -60,16 +60,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFFDF8',
     borderColor: '#E8DED3',
-    borderRadius: 18,
+    borderRadius: 16,
     borderWidth: 1,
     flexDirection: 'row',
-    gap: 12,
-    minHeight: 88,
-    padding: 10,
+    gap: 9,
+    minHeight: 78,
+    padding: 8,
     shadowColor: '#000',
-    shadowOffset: { height: 7, width: 0 },
-    shadowOpacity: 0.045,
-    shadowRadius: 12,
+    shadowOffset: { height: 5, width: 0 },
+    shadowOpacity: 0.035,
+    shadowRadius: 9,
   },
   cardPressed: {
     opacity: 0.82,
@@ -77,11 +77,11 @@ const styles = StyleSheet.create({
   },
   thumbnail: {
     alignItems: 'center',
-    borderRadius: 12,
-    height: 68,
+    borderRadius: 11,
+    height: 60,
     justifyContent: 'center',
     overflow: 'hidden',
-    width: 96,
+    width: 86,
   },
   image: {
     height: '100%',
@@ -90,19 +90,19 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    gap: 2,
+    gap: 1,
     justifyContent: 'center',
     minWidth: 0,
   },
   title: {
     color: colors.text,
-    fontSize: 15.5,
+    fontSize: 14.5,
     fontWeight: '900',
-    letterSpacing: -0.15,
+    letterSpacing: -0.12,
   },
   owner: {
     color: colors.primaryDark,
-    fontSize: 12.5,
+    fontSize: 11.7,
     fontWeight: '800',
   },
   star: {
@@ -111,36 +111,36 @@ const styles = StyleSheet.create({
   metaRow: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 13,
+    gap: 9,
     marginTop: 2,
   },
   metaItem: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 3,
-    maxWidth: 112,
+    gap: 2,
+    maxWidth: 104,
   },
   metaText: {
     color: colors.textMuted,
-    fontSize: 11.5,
+    fontSize: 10.8,
     fontWeight: '600',
   },
   rightColumn: {
     alignItems: 'flex-end',
     alignSelf: 'stretch',
     justifyContent: 'space-between',
-    width: 88,
+    width: 74,
   },
   actionButton: {
     backgroundColor: colors.primary,
     borderRadius: radii.pill,
-    minWidth: 76,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 8,
+    minWidth: 68,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
   },
   actionText: {
     color: colors.surface,
-    fontSize: 12.5,
+    fontSize: 11.8,
     fontWeight: '900',
     textAlign: 'center',
   },
