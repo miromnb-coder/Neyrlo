@@ -22,7 +22,7 @@ export default function AuthLandingScreen() {
 
         <View style={styles.actions}>
           <Pressable style={({ pressed }) => [styles.appleButton, pressed && styles.pressed]}>
-            <Ionicons color="#FFFFFF" name="logo-apple" size={28} />
+            <Ionicons color="#FFFFFF" name="logo-apple" size={27} />
             <Text allowFontScaling={false} style={styles.appleText}>Jatka Apple-tilillä</Text>
           </Pressable>
 
@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
   },
   brandArea: {
     alignItems: 'center',
-    marginTop: 216,
+    marginTop: 188,
   },
   logo: {
     color: BRAND_GREEN,
@@ -84,11 +84,11 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     letterSpacing: -0.25,
     lineHeight: 29,
-    marginTop: 13,
+    marginTop: 12,
     textAlign: 'center',
   },
   actions: {
-    marginTop: 62,
+    marginTop: 49,
     width: '100%',
   },
   appleButton: {
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     flexDirection: 'row',
     gap: 17,
-    height: 66,
+    height: 62,
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { height: 6, width: 0 },
@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
   },
   appleText: {
     color: '#FFFFFF',
-    fontSize: 21.5,
+    fontSize: 21,
     fontWeight: '700',
     letterSpacing: -0.2,
   },
@@ -117,18 +117,18 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     flexDirection: 'row',
-    gap: 19,
-    height: 66,
+    gap: 18,
+    height: 62,
     justifyContent: 'center',
-    marginTop: 24,
+    marginTop: 22,
   },
   googleIcon: {
-    height: 29,
-    width: 29,
+    height: 28,
+    width: 28,
   },
   googleText: {
     color: BRAND_GREEN,
-    fontSize: 21.5,
+    fontSize: 21,
     fontWeight: '700',
     letterSpacing: -0.2,
   },
@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 25,
     marginHorizontal: 32,
-    marginTop: 37,
+    marginTop: 31,
   },
   divider: {
     backgroundColor: 'rgba(99, 99, 91, 0.2)',
@@ -155,18 +155,18 @@ const styles = StyleSheet.create({
     borderColor: FIELD_BORDER,
     borderRadius: 14,
     borderWidth: 1,
-    height: 67,
+    height: 64,
     justifyContent: 'center',
-    marginTop: 34,
+    marginTop: 29,
   },
   emailText: {
     color: BRAND_GREEN,
-    fontSize: 21.5,
+    fontSize: 21,
     fontWeight: '700',
     letterSpacing: -0.18,
   },
   legalText: {
-    bottom: 38,
+    bottom: 30,
     color: '#7E8584',
     fontSize: 13.2,
     fontWeight: '500',
