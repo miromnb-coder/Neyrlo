@@ -17,7 +17,7 @@ export function ItemCard({ item, onPress }: ItemCardProps) {
       onPress={() => onPress?.(item)}
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
     >
-      <View style={[styles.thumbnail, { backgroundColor: item.accentColor }]}> 
+      <View style={[styles.thumbnail, { backgroundColor: item.accentColor }]}>
         <Image source={{ uri: item.imageUrl }} style={styles.image} />
       </View>
 
