@@ -270,6 +270,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     overflow: 'hidden',
     paddingBottom: 13,
+    position: 'relative',
     shadowColor: '#000',
     shadowOffset: { height: 3, width: 0 },
     shadowOpacity: 0.02,
@@ -279,10 +280,12 @@ const styles = StyleSheet.create({
     borderColor: '#5C7F53',
   },
   categoryImage: {
-    ...StyleSheet.absoluteFillObject,
-    height: '100%',
+    bottom: -1,
+    left: -1,
+    position: 'absolute',
+    right: -1,
+    top: -1,
     resizeMode: 'cover',
-    width: '100%',
   },
   categoryTitle: {
     color: colors.text,
