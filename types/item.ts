@@ -9,6 +9,6 @@ export type NearbyItem = {
   availability: 'Vapaa tänään' | 'Vapaa huomenna' | 'Varattavissa viikonloppuna';
   mode: ExchangeMode;
   priceLabel: string;
-  emoji: string;
+  imageUrl: string;
   accentColor: string;
 };
