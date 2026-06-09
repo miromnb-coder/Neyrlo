@@ -22,31 +22,31 @@ export function ItemCard({ item, onPress }: ItemCardProps) {
       </View>
 
       <View style={styles.content}>
-        <View style={styles.titleRow}>
-          <Text numberOfLines={1} style={styles.title}>
-            {item.title}
-          </Text>
-          <Ionicons color={colors.primary} name="heart-outline" size={28} />
-        </View>
+        <Text numberOfLines={1} style={styles.title}>
+          {item.title}
+        </Text>
 
-        <Text style={styles.owner}>
+        <Text numberOfLines={1} style={styles.owner}>
           {item.ownerName} • <Text style={styles.star}>★</Text> {item.rating.toFixed(1)}
         </Text>
 
         <View style={styles.metaRow}>
           <View style={styles.metaItem}>
-            <Ionicons color={colors.textMuted} name="location-outline" size={18} />
+            <Ionicons color={colors.textMuted} name="location-outline" size={14} />
             <Text style={styles.metaText}>{item.distanceKm.toFixed(1).replace('.', ',')} km</Text>
           </View>
 
           <View style={styles.metaItem}>
-            <Ionicons color={colors.textMuted} name="calendar-outline" size={18} />
-            <Text style={styles.metaText}>{item.availability}</Text>
+            <Ionicons color={colors.textMuted} name="calendar-outline" size={14} />
+            <Text numberOfLines={1} style={styles.metaText}>
+              {item.availability}
+            </Text>
           </View>
         </View>
       </View>
 
-      <View style={styles.actionColumn}>
+      <View style={styles.rightColumn}>
+        <Ionicons color={colors.primary} name="heart-outline" size={22} />
         <View style={styles.actionButton}>
           <Text style={styles.actionText}>{item.priceLabel}</Text>
         </View>
@@ -60,16 +60,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.surface,
     borderColor: colors.border,
-    borderRadius: 27,
+    borderRadius: 18,
     borderWidth: 1,
     flexDirection: 'row',
     gap: spacing.md,
-    minHeight: 116,
-    padding: spacing.md,
+    minHeight: 92,
+    padding: 10,
     shadowColor: '#000',
-    shadowOffset: { height: 10, width: 0 },
-    shadowOpacity: 0.07,
-    shadowRadius: 16,
+    shadowOffset: { height: 7, width: 0 },
+    shadowOpacity: 0.055,
+    shadowRadius: 12,
   },
   cardPressed: {
     opacity: 0.82,
@@ -77,11 +77,11 @@ const styles = StyleSheet.create({
   },
   thumbnail: {
     alignItems: 'center',
-    borderRadius: radii.lg,
-    height: 88,
+    borderRadius: 12,
+    height: 70,
     justifyContent: 'center',
     overflow: 'hidden',
-    width: 112,
+    width: 96,
   },
   image: {
     height: '100%',
@@ -90,24 +90,19 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    gap: spacing.xs,
+    gap: 3,
     justifyContent: 'center',
-  },
-  titleRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: spacing.sm,
+    minWidth: 0,
   },
   title: {
     color: colors.text,
-    flex: 1,
-    fontSize: 19,
+    fontSize: 16,
     fontWeight: '900',
-    letterSpacing: -0.2,
+    letterSpacing: -0.15,
   },
   owner: {
     color: colors.primaryDark,
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '800',
   },
   star: {
@@ -116,32 +111,36 @@ const styles = StyleSheet.create({
   metaRow: {
     alignItems: 'center',
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.lg,
+    gap: spacing.md,
   },
   metaItem: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 4,
+    gap: 3,
+    maxWidth: 112,
   },
   metaText: {
     color: colors.textMuted,
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
   },
-  actionColumn: {
+  rightColumn: {
+    alignItems: 'flex-end',
     alignSelf: 'stretch',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
+    width: 92,
   },
   actionButton: {
     backgroundColor: colors.primary,
     borderRadius: radii.pill,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    minWidth: 78,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 9,
   },
   actionText: {
     color: colors.surface,
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '900',
+    textAlign: 'center',
   },
 });
