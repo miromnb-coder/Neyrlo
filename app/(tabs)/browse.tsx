@@ -267,10 +267,9 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     borderWidth: 1,
     height: 126,
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
     paddingBottom: 13,
-    paddingHorizontal: 6,
-    paddingTop: 7,
     shadowColor: '#000',
     shadowOffset: { height: 3, width: 0 },
     shadowOpacity: 0.02,
@@ -280,8 +279,9 @@ const styles = StyleSheet.create({
     borderColor: '#5C7F53',
   },
   categoryImage: {
-    height: 79,
-    resizeMode: 'contain',
+    ...StyleSheet.absoluteFillObject,
+    height: '100%',
+    resizeMode: 'cover',
     width: '100%',
   },
   categoryTitle: {
@@ -289,6 +289,7 @@ const styles = StyleSheet.create({
     fontSize: 14.2,
     fontWeight: '800',
     letterSpacing: -0.1,
+    zIndex: 1,
   },
   grid: {
     flexDirection: 'row',
