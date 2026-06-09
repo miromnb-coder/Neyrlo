@@ -41,11 +41,33 @@ Start the app:
 npm run start
 ```
 
+Start with Expo Go tunnel, which is usually best for cloud IDEs like Codeanywhere:
+
+```bash
+npm run start:expo-go
+```
+
 Run type checking:
 
 ```bash
 npm run typecheck
 ```
+
+## Codeanywhere / VS Code task buttons
+
+This project includes VS Code tasks in `.vscode/tasks.json`. In Codeanywhere, open the task picker and choose one of these:
+
+- `📦 Neyrlo: asenna paketit`
+- `🚀 Neyrlo: käynnistä Expo Go`
+- `🌐 Neyrlo: käynnistä web-esikatselu`
+- `✅ Neyrlo: tarkista TypeScript`
+
+Recommended first run:
+
+1. Run `📦 Neyrlo: asenna paketit`.
+2. Run `🚀 Neyrlo: käynnistä Expo Go`.
+3. Open Expo Go on your phone.
+4. Scan the QR code from the terminal.
 
 ## Current first milestone
 
