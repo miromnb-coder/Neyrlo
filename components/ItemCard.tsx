@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, radii, spacing } from '@/constants/theme';
 import type { NearbyItem } from '@/types/item';
@@ -18,7 +18,7 @@ export function ItemCard({ item, onPress }: ItemCardProps) {
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
     >
       <View style={[styles.thumbnail, { backgroundColor: item.accentColor }]}>
-        <Text style={styles.emoji}>{item.emoji}</Text>
+        <Image source={{ uri: item.imageUrl }} style={styles.image} />
       </View>
 
       <View style={styles.content}>
@@ -26,19 +26,21 @@ export function ItemCard({ item, onPress }: ItemCardProps) {
           <Text numberOfLines={1} style={styles.title}>
             {item.title}
           </Text>
-          <Ionicons color={colors.primary} name="heart-outline" size={21} />
+          <Ionicons color={colors.primary} name="heart-outline" size={28} />
         </View>
 
-        <Text style={styles.owner}>{item.ownerName} • ⭐ {item.rating.toFixed(1)}</Text>
+        <Text style={styles.owner}>
+          {item.ownerName} • <Text style={styles.star}>★</Text> {item.rating.toFixed(1)}
+        </Text>
 
         <View style={styles.metaRow}>
           <View style={styles.metaItem}>
-            <Ionicons color={colors.textMuted} name="location-outline" size={15} />
+            <Ionicons color={colors.textMuted} name="location-outline" size={18} />
             <Text style={styles.metaText}>{item.distanceKm.toFixed(1).replace('.', ',')} km</Text>
           </View>
 
           <View style={styles.metaItem}>
-            <Ionicons color={colors.textMuted} name="calendar-outline" size={15} />
+            <Ionicons color={colors.textMuted} name="calendar-outline" size={18} />
             <Text style={styles.metaText}>{item.availability}</Text>
           </View>
         </View>
@@ -55,16 +57,18 @@ export function ItemCard({ item, onPress }: ItemCardProps) {
 
 const styles = StyleSheet.create({
   card: {
+    alignItems: 'center',
     backgroundColor: colors.surface,
     borderColor: colors.border,
-    borderRadius: radii.lg,
+    borderRadius: 27,
     borderWidth: 1,
     flexDirection: 'row',
     gap: spacing.md,
+    minHeight: 116,
     padding: spacing.md,
     shadowColor: '#000',
-    shadowOffset: { height: 8, width: 0 },
-    shadowOpacity: 0.06,
+    shadowOffset: { height: 10, width: 0 },
+    shadowOpacity: 0.07,
     shadowRadius: 16,
   },
   cardPressed: {
@@ -73,13 +77,16 @@ const styles = StyleSheet.create({
   },
   thumbnail: {
     alignItems: 'center',
-    borderRadius: radii.md,
-    height: 72,
+    borderRadius: radii.lg,
+    height: 88,
     justifyContent: 'center',
-    width: 72,
+    overflow: 'hidden',
+    width: 112,
   },
-  emoji: {
-    fontSize: 32,
+  image: {
+    height: '100%',
+    resizeMode: 'cover',
+    width: '100%',
   },
   content: {
     flex: 1,
@@ -94,40 +101,47 @@ const styles = StyleSheet.create({
   title: {
     color: colors.text,
     flex: 1,
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 19,
+    fontWeight: '900',
+    letterSpacing: -0.2,
   },
   owner: {
     color: colors.primaryDark,
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  star: {
+    color: '#E9B949',
   },
   metaRow: {
+    alignItems: 'center',
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.md,
+    gap: spacing.lg,
   },
   metaItem: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 3,
+    gap: 4,
   },
   metaText: {
     color: colors.textMuted,
-    fontSize: 12,
+    fontSize: 14,
+    fontWeight: '600',
   },
   actionColumn: {
+    alignSelf: 'stretch',
     justifyContent: 'flex-end',
   },
   actionButton: {
     backgroundColor: colors.primary,
     borderRadius: radii.pill,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
   },
   actionText: {
     color: colors.surface,
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '900',
   },
 });
