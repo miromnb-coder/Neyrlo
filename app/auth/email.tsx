@@ -36,7 +36,7 @@ export default function EmailAuthScreen() {
 
         <View style={styles.form}>
           <View style={styles.inputBox}>
-            <Ionicons color="#424946" name="mail-outline" size={27} />
+            <Ionicons color="#424946" name="mail-outline" size={26} />
             <TextInput
               autoCapitalize="none"
               autoCorrect={false}
@@ -48,14 +48,14 @@ export default function EmailAuthScreen() {
           </View>
 
           <View style={styles.inputBox}>
-            <Ionicons color="#424946" name="lock-closed-outline" size={27} />
+            <Ionicons color="#424946" name="lock-closed-outline" size={26} />
             <TextInput
               placeholder="Salasana"
               placeholderTextColor={PLACEHOLDER}
               secureTextEntry
               style={styles.input}
             />
-            <Ionicons color="#424946" name="eye-outline" size={29} />
+            <Ionicons color="#424946" name="eye-outline" size={28} />
           </View>
 
           <Pressable style={({ pressed }) => pressed && styles.pressed}>
@@ -64,7 +64,7 @@ export default function EmailAuthScreen() {
 
           <Pressable style={({ pressed }) => [styles.termsRow, pressed && styles.pressed]}>
             <View style={styles.checkbox} />
-            <Text allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82} style={styles.termsText}>
+            <Text allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.78} style={styles.termsText}>
               Hyväksyn <Text style={styles.termsLink}>käyttöehdot</Text> ja <Text style={styles.termsLink}>tietosuojakäytännön</Text>
             </Text>
           </Pressable>
@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
-    paddingBottom: 38,
+    paddingBottom: 54,
     paddingHorizontal: 36,
   },
   backButton: {
@@ -118,29 +118,29 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginTop: 104,
+    marginTop: 64,
   },
   title: {
     color: BRAND_GREEN,
     fontFamily: serifFont,
-    fontSize: 42,
+    fontSize: 40,
     fontWeight: Platform.OS === 'ios' ? '500' : '400',
-    letterSpacing: -1,
-    lineHeight: 51,
+    letterSpacing: -0.95,
+    lineHeight: 48,
     textAlign: 'center',
     width: '100%',
   },
   subtitle: {
     color: TEXT_MUTED,
-    fontSize: 17,
+    fontSize: 16.4,
     fontWeight: '500',
-    letterSpacing: -0.12,
-    lineHeight: 24,
-    marginTop: 24,
+    letterSpacing: -0.1,
+    lineHeight: 23,
+    marginTop: 20,
     textAlign: 'center',
   },
   form: {
-    marginTop: 47,
+    marginTop: 38,
   },
   inputBox: {
     alignItems: 'center',
@@ -149,45 +149,45 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     flexDirection: 'row',
-    gap: 20,
-    height: 70,
-    marginBottom: 30,
+    gap: 19,
+    height: 66,
+    marginBottom: 24,
     paddingHorizontal: 24,
   },
   input: {
     color: '#222A27',
     flex: 1,
-    fontSize: 22,
+    fontSize: 21,
     fontWeight: '500',
     padding: 0,
   },
   forgotText: {
     color: '#26302C',
-    fontSize: 14.5,
+    fontSize: 14.3,
     fontWeight: '500',
     marginLeft: 18,
-    marginTop: -15,
+    marginTop: -8,
   },
   termsRow: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 17,
-    marginTop: 43,
+    gap: 15,
+    marginTop: 30,
     paddingHorizontal: 20,
   },
   checkbox: {
     borderColor: FIELD_BORDER,
     borderRadius: 6,
     borderWidth: 1.5,
-    height: 30,
-    width: 30,
+    height: 29,
+    width: 29,
   },
   termsText: {
     color: '#4E5552',
     flex: 1,
-    fontSize: 15.5,
+    fontSize: 14.4,
     fontWeight: '500',
-    lineHeight: 22,
+    lineHeight: 21,
   },
   termsLink: {
     color: BRAND_GREEN,
@@ -197,9 +197,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: CTA_GREEN,
     borderRadius: 13,
-    height: 64,
+    height: 61,
     justifyContent: 'center',
-    marginTop: 40,
+    marginTop: 32,
     shadowColor: '#000',
     shadowOffset: { height: 7, width: 0 },
     shadowOpacity: 0.08,
@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
   },
   continueText: {
     color: '#FFFFFF',
-    fontSize: 22,
+    fontSize: 21.5,
     fontWeight: '500',
     letterSpacing: -0.15,
   },
@@ -216,16 +216,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     justifyContent: 'center',
-    marginTop: 30,
+    marginTop: 24,
   },
   bottomText: {
     color: TEXT_MUTED,
-    fontSize: 15.7,
+    fontSize: 15.4,
     fontWeight: '500',
   },
   bottomLink: {
     color: BRAND_GREEN,
-    fontSize: 15.7,
+    fontSize: 15.4,
     fontWeight: '600',
   },
   pressed: {
