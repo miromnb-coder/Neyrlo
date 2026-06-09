@@ -4,11 +4,26 @@ import { Tabs } from 'expo-router';
 import { colors } from '@/constants/theme';
 
 const tabIcons = {
-  index: 'map-outline',
-  browse: 'grid-outline',
-  add: 'add-circle-outline',
-  messages: 'chatbubble-outline',
-  profile: 'person-outline',
+  index: {
+    active: 'location',
+    inactive: 'location-outline',
+  },
+  browse: {
+    active: 'grid',
+    inactive: 'grid-outline',
+  },
+  add: {
+    active: 'add-circle',
+    inactive: 'add-circle-outline',
+  },
+  messages: {
+    active: 'chatbubble',
+    inactive: 'chatbubble-outline',
+  },
+  profile: {
+    active: 'person',
+    inactive: 'person-outline',
+  },
 } as const;
 
 export default function TabsLayout() {
@@ -17,22 +32,36 @@ export default function TabsLayout() {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textMuted,
+        tabBarInactiveTintColor: '#697068',
+        tabBarItemStyle: {
+          paddingTop: 3,
+        },
         tabBarLabelStyle: {
           fontSize: 13,
           fontWeight: '800',
+          lineHeight: 17,
         },
         tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.border,
+          backgroundColor: 'rgba(255, 253, 247, 0.98)',
+          borderTopColor: 'rgba(229, 218, 206, 0.95)',
           borderTopWidth: 1,
+          elevation: 0,
           height: 92,
-          paddingBottom: 22,
-          paddingTop: 10,
+          paddingBottom: 20,
+          paddingTop: 8,
+          shadowColor: '#000',
+          shadowOffset: { height: -3, width: 0 },
+          shadowOpacity: 0.03,
+          shadowRadius: 10,
         },
-        tabBarIcon: ({ color, size }) => {
-          const iconName = tabIcons[route.name as keyof typeof tabIcons] ?? 'ellipse-outline';
-          return <Ionicons color={color} name={iconName} size={size + 3} />;
+        tabBarIcon: ({ color, focused }) => {
+          const iconSet = tabIcons[route.name as keyof typeof tabIcons] ?? {
+            active: 'ellipse',
+            inactive: 'ellipse-outline',
+          };
+          const iconName = focused ? iconSet.active : iconSet.inactive;
+
+          return <Ionicons color={color} name={iconName} size={focused ? 31 : 30} />;
         },
       })}
     >
