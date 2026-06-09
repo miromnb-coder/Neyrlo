@@ -33,44 +33,38 @@ const pins: Pin[] = [
 const mapStyle: MapStyleElement[] = [
   {
     elementType: 'geometry',
-    stylers: [{ color: '#F2EFE8' }],
+    stylers: [{ color: '#F3F0E8' }],
   },
   {
     elementType: 'labels.icon',
     stylers: [{ visibility: 'off' }],
   },
   {
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#9A988F' }],
-  },
-  {
-    elementType: 'labels.text.stroke',
-    stylers: [{ color: '#F8F5EE' }],
+    elementType: 'labels.text',
+    stylers: [{ visibility: 'off' }],
   },
   {
     featureType: 'administrative',
-    elementType: 'geometry.stroke',
-    stylers: [{ color: '#E3DDD1' }],
+    stylers: [{ visibility: 'off' }],
   },
   {
     featureType: 'landscape.man_made',
     elementType: 'geometry',
-    stylers: [{ color: '#F4F0E8' }],
+    stylers: [{ color: '#F5F1E9' }],
   },
   {
     featureType: 'landscape.natural',
     elementType: 'geometry',
-    stylers: [{ color: '#EEF1E7' }],
+    stylers: [{ color: '#EEF2E9' }],
   },
   {
     featureType: 'poi',
-    elementType: 'geometry',
-    stylers: [{ color: '#E4EEDC' }],
+    stylers: [{ visibility: 'off' }],
   },
   {
     featureType: 'poi.park',
     elementType: 'geometry',
-    stylers: [{ color: '#DDEBD8' }],
+    stylers: [{ color: '#DDEBD8' }, { visibility: 'on' }],
   },
   {
     featureType: 'road',
@@ -80,7 +74,17 @@ const mapStyle: MapStyleElement[] = [
   {
     featureType: 'road',
     elementType: 'geometry.stroke',
-    stylers: [{ color: '#E5DDD2' }],
+    stylers: [{ color: '#E9E0D5' }, { weight: 0.45 }],
+  },
+  {
+    featureType: 'road',
+    elementType: 'labels',
+    stylers: [{ visibility: 'off' }],
+  },
+  {
+    featureType: 'road.highway',
+    elementType: 'geometry',
+    stylers: [{ color: '#F8F3EA' }],
   },
   {
     featureType: 'road.arterial',
@@ -90,17 +94,16 @@ const mapStyle: MapStyleElement[] = [
   {
     featureType: 'road.local',
     elementType: 'geometry',
-    stylers: [{ color: '#FBF8F1' }],
+    stylers: [{ color: '#FCF8F0' }],
   },
   {
     featureType: 'transit',
-    elementType: 'geometry',
-    stylers: [{ color: '#E7E1D6' }],
+    stylers: [{ visibility: 'off' }],
   },
   {
     featureType: 'water',
     elementType: 'geometry',
-    stylers: [{ color: '#C9DEE9' }],
+    stylers: [{ color: '#CFE3EC' }],
   },
 ];
 
@@ -114,6 +117,7 @@ export function MapBackdrop() {
           latitudeDelta: 0.014,
           longitudeDelta: 0.014,
         }}
+        mapType={Platform.OS === 'ios' ? 'mutedStandard' : 'standard'}
         pitchEnabled={false}
         provider={mapProvider}
         rotateEnabled={false}
@@ -123,15 +127,17 @@ export function MapBackdrop() {
         showsIndoors={false}
         showsMyLocationButton={false}
         showsPointsOfInterest={false}
+        showsScale={false}
+        showsTraffic={false}
         style={StyleSheet.absoluteFill}
         toolbarEnabled={false}
         zoomEnabled={false}
       >
         <Circle
           center={mapCenter}
-          fillColor="rgba(58, 142, 214, 0.14)"
-          radius={260}
-          strokeColor="rgba(58, 142, 214, 0.08)"
+          fillColor="rgba(58, 142, 214, 0.1)"
+          radius={230}
+          strokeColor="rgba(58, 142, 214, 0.05)"
           strokeWidth={1}
         />
         <Marker anchor={{ x: 0.5, y: 0.5 }} coordinate={mapCenter} tracksViewChanges={false} zIndex={2}>
@@ -150,7 +156,8 @@ export function MapBackdrop() {
         ))}
       </MapView>
       <View pointerEvents="none" style={styles.mapWash} />
-      <View pointerEvents="none" style={styles.statusFade} />
+      <View pointerEvents="none" style={styles.topWhiteWash} />
+      <View pointerEvents="none" style={styles.topWhiteFade} />
     </View>
   );
 }
@@ -165,12 +172,21 @@ const styles = StyleSheet.create({
   },
   mapWash: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255, 253, 247, 0.16)',
+    backgroundColor: 'rgba(255, 253, 247, 0.24)',
     zIndex: 1,
   },
-  statusFade: {
-    backgroundColor: 'rgba(255, 253, 247, 0.56)',
-    height: 132,
+  topWhiteWash: {
+    backgroundColor: 'rgba(255, 253, 247, 0.58)',
+    height: 178,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    zIndex: 2,
+  },
+  topWhiteFade: {
+    backgroundColor: 'rgba(255, 253, 247, 0.2)',
+    height: 292,
     left: 0,
     position: 'absolute',
     right: 0,
@@ -185,8 +201,8 @@ const styles = StyleSheet.create({
     height: 22,
     shadowColor: '#2C8CDD',
     shadowOffset: { height: 0, width: 0 },
-    shadowOpacity: 0.22,
-    shadowRadius: 14,
+    shadowOpacity: 0.2,
+    shadowRadius: 13,
     width: 22,
   },
 });
