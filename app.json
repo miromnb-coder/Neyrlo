@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "Neyrlo",
+    "slug": "neyrlo",
+    "scheme": "neyrlo",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "plugins": [
+      "expo-router"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.miromnbcoder.neyrlo"
+    },
+    "android": {
+      "package": "com.miromnbcoder.neyrlo",
+      "adaptiveIcon": {
+        "backgroundColor": "#F4EFE6"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
