@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 
 import { colors, radii, spacing } from '@/constants/theme';
 import { filters } from '@/data/nearbyItems';
@@ -10,7 +10,11 @@ type FilterChipsProps = {
 
 export function FilterChips({ selected = 'Kaikki', onSelect }: FilterChipsProps) {
   return (
-    <View style={styles.row}>
+    <ScrollView
+      contentContainerStyle={styles.row}
+      horizontal
+      showsHorizontalScrollIndicator={false}
+    >
       {filters.map((filter) => {
         const active = filter === selected;
 
@@ -26,25 +30,26 @@ export function FilterChips({ selected = 'Kaikki', onSelect }: FilterChipsProps)
           </Pressable>
         );
       })}
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   row: {
-    flexDirection: 'row',
-    gap: spacing.sm,
+    gap: spacing.md,
+    paddingHorizontal: spacing.xl,
   },
   chip: {
-    backgroundColor: 'rgba(255, 253, 247, 0.92)',
+    backgroundColor: 'rgba(255, 253, 247, 0.94)',
     borderColor: colors.border,
     borderRadius: radii.pill,
     borderWidth: 1,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    minWidth: 96,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     shadowColor: '#000',
-    shadowOffset: { height: 4, width: 0 },
-    shadowOpacity: 0.05,
+    shadowOffset: { height: 5, width: 0 },
+    shadowOpacity: 0.07,
     shadowRadius: 10,
   },
   activeChip: {
@@ -53,8 +58,9 @@ const styles = StyleSheet.create({
   },
   chipText: {
     color: colors.textMuted,
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '800',
+    textAlign: 'center',
   },
   activeChipText: {
     color: colors.surface,
