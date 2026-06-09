@@ -3,7 +3,6 @@ import { Platform, StyleSheet, View } from 'react-native';
 import MapView, { Circle, Marker, PROVIDER_GOOGLE, type MapStyleElement } from 'react-native-maps';
 
 import { MapPin } from '@/components/MapPin';
-import { NearbyMapCard } from '@/components/NearbyMapCard';
 import { colors } from '@/constants/theme';
 
 type Pin = {
@@ -152,7 +151,6 @@ export function MapBackdrop() {
       </MapView>
       <View pointerEvents="none" style={styles.mapWash} />
       <View pointerEvents="none" style={styles.statusFade} />
-      <NearbyMapCard />
     </View>
   );
 }
