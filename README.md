@@ -1,0 +1,105 @@
+# Neyrlo
+
+Neyrlo is a neighborhood item-sharing app built with Expo, React Native, TypeScript and Supabase.
+
+The first version focuses on a map-first home screen where people can find nearby items to borrow, rent, swap or get for free.
+
+## Tech stack
+
+- Expo
+- React Native
+- TypeScript
+- Expo Router
+- Supabase Auth, Database and Storage
+- Supabase Postgres + PostGIS for location-based item search later
+
+## Getting started
+
+Install dependencies:
+
+```bash
+npm install
+npx expo install --fix
+```
+
+Create your local environment file:
+
+```bash
+cp .env.example .env
+```
+
+Fill in these values in `.env`:
+
+```bash
+EXPO_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key
+```
+
+Start the app:
+
+```bash
+npm run start
+```
+
+Run type checking:
+
+```bash
+npm run typecheck
+```
+
+## Current first milestone
+
+This repository now contains the first app foundation:
+
+- Expo + React Native + TypeScript setup
+- Expo Router bottom tabs
+- Map-first home screen mockup
+- Reusable UI components
+- Supabase client setup for React Native
+- Supabase MVP database schema draft
+
+## Project structure
+
+```txt
+app/
+  _layout.tsx
+  (tabs)/
+    _layout.tsx
+    index.tsx
+    browse.tsx
+    add.tsx
+    messages.tsx
+    profile.tsx
+components/
+constants/
+data/
+lib/
+supabase/
+  migrations/
+types/
+```
+
+## Supabase setup
+
+The initial database draft is in:
+
+```txt
+supabase/migrations/0001_initial_schema.sql
+```
+
+It creates the first MVP tables:
+
+- `profiles`
+- `items`
+- `item_images`
+
+It also enables Row Level Security and adds basic ownership policies.
+
+## Next milestone
+
+The next logical milestone is Supabase Auth:
+
+1. Add sign up and login screens.
+2. Create a profile row after signup.
+3. Route signed-in users to the main tabs.
+4. Keep signed-out users in the auth flow.
