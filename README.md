@@ -6,7 +6,7 @@ The first version focuses on a map-first home screen where people can find nearb
 
 ## Tech stack
 
-- Expo
+- Expo SDK 54
 - React Native
 - TypeScript
 - Expo Router
@@ -14,6 +14,8 @@ The first version focuses on a map-first home screen where people can find nearb
 - Supabase Postgres + PostGIS for location-based item search later
 
 ## Getting started
+
+This project is pinned to Node.js `20.19.4` because Expo SDK 54 requires Node `>=20.19.4`.
 
 Install dependencies:
 
@@ -57,6 +59,7 @@ npm run typecheck
 
 This project includes VS Code tasks in `.vscode/tasks.json`. In Codeanywhere, open the task picker and choose one of these:
 
+- `🟢 Neyrlo: korjaa Node-versio`
 - `📦 Neyrlo: asenna paketit`
 - `🚀 Neyrlo: käynnistä Expo Go`
 - `🌐 Neyrlo: käynnistä web-esikatselu`
@@ -64,10 +67,11 @@ This project includes VS Code tasks in `.vscode/tasks.json`. In Codeanywhere, op
 
 Recommended first run:
 
-1. Run `📦 Neyrlo: asenna paketit`.
-2. Run `🚀 Neyrlo: käynnistä Expo Go`.
-3. Open Expo Go on your phone.
-4. Scan the QR code from the terminal.
+1. Run `🟢 Neyrlo: korjaa Node-versio`.
+2. Run `📦 Neyrlo: asenna paketit`.
+3. Run `🚀 Neyrlo: käynnistä Expo Go`.
+4. Open Expo Go on your phone.
+5. Scan the QR code from the terminal.
 
 ## Current first milestone
 
