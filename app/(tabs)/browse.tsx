@@ -1,36 +1,29 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import {
-  Image,
-  type ImageSourcePropType,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { FilterChips } from '@/components/FilterChips';
 import { SearchOverlay } from '@/components/SearchOverlay';
 import { colors, radii } from '@/constants/theme';
 import { filters, nearbyItems } from '@/data/nearbyItems';
 
-const categories: { id: string; title: string; image: ImageSourcePropType }[] = [
+const categoryImageBaseUrl = 'https://raw.githubusercontent.com/miromnb-coder/Neyrlo/main/assets/images/categories';
+
+const categories = [
   {
     id: 'tools',
     title: 'Työkalut',
-    image: require('../../assets/images/categories/category-tools.PNG'),
+    imageUrl: `${categoryImageBaseUrl}/category-tools.PNG`,
   },
   {
     id: 'outdoor',
     title: 'Ulkoilu',
-    image: require('../../assets/images/categories/category-outdoor.PNG'),
+    imageUrl: `${categoryImageBaseUrl}/category-outdoor.PNG`,
   },
   {
     id: 'travel',
     title: 'Matkustus',
-    image: require('../../assets/images/categories/category-travel.PNG'),
+    imageUrl: `${categoryImageBaseUrl}/category-travel.PNG`,
   },
 ];
 
@@ -143,7 +136,7 @@ export default function BrowseScreen() {
                 onPress={() => setSelectedCategory(category.id)}
                 style={[styles.categoryCard, { width: categoryCardWidth }, selected && styles.selectedCategoryCard]}
               >
-                <Image source={category.image} style={styles.categoryImage} />
+                <Image source={{ uri: category.imageUrl }} style={styles.categoryImage} />
                 <Text allowFontScaling={false} style={styles.categoryTitle}>{category.title}</Text>
               </Pressable>
             );
