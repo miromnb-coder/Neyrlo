@@ -52,14 +52,14 @@ const styles = StyleSheet.create({
     left: spacing.lg,
     position: 'absolute',
     right: spacing.lg,
-    top: 58,
+    top: 56,
     zIndex: 30,
   },
   filterWrapper: {
     left: 0,
     position: 'absolute',
     right: 0,
-    top: 132,
+    top: 128,
     zIndex: 29,
   },
 });
