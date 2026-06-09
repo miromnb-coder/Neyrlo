@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Platform, StyleSheet, View } from 'react-native';
 import MapView, { Circle, Marker, PROVIDER_GOOGLE, type MapStyleElement } from 'react-native-maps';
-import { StyleSheet, View } from 'react-native';
 
 import { MapPin } from '@/components/MapPin';
 import { NearbyMapCard } from '@/components/NearbyMapCard';
@@ -19,6 +19,8 @@ const mapCenter = {
   latitude: 60.1699,
   longitude: 24.9384,
 };
+
+const mapProvider = Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined;
 
 const pins: Pin[] = [
   { id: 'drill', icon: 'construct-outline', coordinate: { latitude: 60.1726, longitude: 24.9286 } },
@@ -114,7 +116,7 @@ export function MapBackdrop() {
           longitudeDelta: 0.014,
         }}
         pitchEnabled={false}
-        provider={PROVIDER_GOOGLE}
+        provider={mapProvider}
         rotateEnabled={false}
         scrollEnabled={false}
         showsBuildings={false}
