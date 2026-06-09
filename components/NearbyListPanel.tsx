@@ -9,7 +9,7 @@ type NearbyListPanelProps = {
 };
 
 export function NearbyListPanel({ items: _items }: NearbyListPanelProps) {
-  const snapPoints = useMemo(() => ['47%', '76%'], []);
+  const snapPoints = useMemo(() => ['18%', '47%', '76%'], []);
 
   return (
     <BottomSheet
@@ -18,7 +18,8 @@ export function NearbyListPanel({ items: _items }: NearbyListPanelProps) {
       enablePanDownToClose={false}
       handleIndicatorStyle={styles.handleIndicator}
       handleStyle={styles.handle}
-      index={0}
+      index={1}
+      overDragResistanceFactor={3}
       snapPoints={snapPoints}
       style={styles.sheet}
     >
