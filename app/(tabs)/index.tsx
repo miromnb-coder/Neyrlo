@@ -49,17 +49,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   searchWrapper: {
-    left: spacing.xl,
+    left: spacing.lg,
     position: 'absolute',
-    right: spacing.xl,
-    top: 62,
+    right: spacing.lg,
+    top: 58,
     zIndex: 30,
   },
   filterWrapper: {
     left: 0,
     position: 'absolute',
     right: 0,
-    top: 144,
+    top: 132,
     zIndex: 29,
   },
 });
