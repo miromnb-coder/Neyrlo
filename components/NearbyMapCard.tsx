@@ -1,14 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, radii, spacing } from '@/constants/theme';
+import { colors } from '@/constants/theme';
 
 export function NearbyMapCard() {
   return (
     <View style={styles.card}>
       <View style={styles.titleRow}>
-        <Ionicons color={colors.primary} name="location" size={13} />
         <Text allowFontScaling={false} style={styles.title}>Lähellä sinua</Text>
+        <Ionicons color={colors.primary} name="location-outline" size={14} />
       </View>
       <Text allowFontScaling={false} style={styles.text}>14 tavaraa</Text>
       <Text allowFontScaling={false} style={styles.text}>2 km säteellä</Text>
@@ -18,36 +18,34 @@ export function NearbyMapCard() {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: 'rgba(255, 253, 247, 0.94)',
-    borderColor: colors.border,
-    borderRadius: radii.md,
+    backgroundColor: 'rgba(255, 253, 247, 0.95)',
+    borderColor: 'rgba(229, 218, 206, 0.82)',
+    borderRadius: 14,
     borderWidth: 1,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 10,
-    position: 'absolute',
-    right: spacing.lg,
+    minWidth: 145,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
     shadowColor: '#000',
-    shadowOffset: { height: 6, width: 0 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    top: 310,
-    zIndex: 4,
+    shadowOffset: { height: 7, width: 0 },
+    shadowOpacity: 0.055,
+    shadowRadius: 13,
   },
   titleRow: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: spacing.xs,
-    marginBottom: 3,
+    gap: 5,
+    marginBottom: 5,
   },
   title: {
     color: colors.text,
-    fontSize: 13.5,
-    fontWeight: '900',
+    fontSize: 14.2,
+    fontWeight: '800',
+    letterSpacing: -0.08,
   },
   text: {
-    color: colors.textMuted,
-    fontSize: 13,
-    fontWeight: '600',
-    lineHeight: 18,
+    color: '#56605A',
+    fontSize: 12.4,
+    fontWeight: '500',
+    lineHeight: 17,
   },
 });
