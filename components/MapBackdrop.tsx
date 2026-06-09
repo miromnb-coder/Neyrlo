@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import MapView, { Circle, Marker, PROVIDER_GOOGLE, type MapStyleElement } from 'react-native-maps';
 import { StyleSheet, View } from 'react-native';
 
 import { MapPin } from '@/components/MapPin';
@@ -6,46 +7,149 @@ import { NearbyMapCard } from '@/components/NearbyMapCard';
 import { colors } from '@/constants/theme';
 
 type Pin = {
+  coordinate: {
+    latitude: number;
+    longitude: number;
+  };
   icon: keyof typeof Ionicons.glyphMap;
-  left: `${number}%`;
-  top: `${number}%`;
+  id: string;
+};
+
+const mapCenter = {
+  latitude: 60.1699,
+  longitude: 24.9384,
 };
 
 const pins: Pin[] = [
-  { icon: 'construct-outline', left: '27%', top: '28%' },
-  { icon: 'shirt-outline', left: '35%', top: '43%' },
-  { icon: 'briefcase-outline', left: '61%', top: '57%' },
-  { icon: 'leaf-outline', left: '82%', top: '42%' },
-  { icon: 'ticket-outline', left: '22%', top: '57%' },
-  { icon: 'restaurant-outline', left: '67%', top: '31%' },
+  { id: 'drill', icon: 'construct-outline', coordinate: { latitude: 60.1726, longitude: 24.9286 } },
+  { id: 'chairs', icon: 'shirt-outline', coordinate: { latitude: 60.1683, longitude: 24.9317 } },
+  { id: 'suitcase', icon: 'briefcase-outline', coordinate: { latitude: 60.1664, longitude: 24.9448 } },
+  { id: 'plant', icon: 'leaf-outline', coordinate: { latitude: 60.1692, longitude: 24.9537 } },
+  { id: 'ticket', icon: 'ticket-outline', coordinate: { latitude: 60.1652, longitude: 24.9274 } },
+  { id: 'restaurant', icon: 'restaurant-outline', coordinate: { latitude: 60.1714, longitude: 24.9475 } },
+];
+
+const mapStyle: MapStyleElement[] = [
+  {
+    elementType: 'geometry',
+    stylers: [{ color: '#F2EFE8' }],
+  },
+  {
+    elementType: 'labels.icon',
+    stylers: [{ visibility: 'off' }],
+  },
+  {
+    elementType: 'labels.text.fill',
+    stylers: [{ color: '#9A988F' }],
+  },
+  {
+    elementType: 'labels.text.stroke',
+    stylers: [{ color: '#F8F5EE' }],
+  },
+  {
+    featureType: 'administrative',
+    elementType: 'geometry.stroke',
+    stylers: [{ color: '#E3DDD1' }],
+  },
+  {
+    featureType: 'landscape.man_made',
+    elementType: 'geometry',
+    stylers: [{ color: '#F4F0E8' }],
+  },
+  {
+    featureType: 'landscape.natural',
+    elementType: 'geometry',
+    stylers: [{ color: '#EEF1E7' }],
+  },
+  {
+    featureType: 'poi',
+    elementType: 'geometry',
+    stylers: [{ color: '#E4EEDC' }],
+  },
+  {
+    featureType: 'poi.park',
+    elementType: 'geometry',
+    stylers: [{ color: '#DDEBD8' }],
+  },
+  {
+    featureType: 'road',
+    elementType: 'geometry',
+    stylers: [{ color: '#FFFDF7' }],
+  },
+  {
+    featureType: 'road',
+    elementType: 'geometry.stroke',
+    stylers: [{ color: '#E5DDD2' }],
+  },
+  {
+    featureType: 'road.arterial',
+    elementType: 'geometry',
+    stylers: [{ color: '#FFFDF7' }],
+  },
+  {
+    featureType: 'road.local',
+    elementType: 'geometry',
+    stylers: [{ color: '#FBF8F1' }],
+  },
+  {
+    featureType: 'transit',
+    elementType: 'geometry',
+    stylers: [{ color: '#E7E1D6' }],
+  },
+  {
+    featureType: 'water',
+    elementType: 'geometry',
+    stylers: [{ color: '#C9DEE9' }],
+  },
 ];
 
 export function MapBackdrop() {
   return (
     <View style={styles.map}>
-      <View style={styles.statusFade} />
-      <View style={[styles.park, styles.parkOne]} />
-      <View style={[styles.park, styles.parkTwo]} />
-      <View style={[styles.park, styles.parkThree]} />
-      <View style={styles.river} />
-
-      <View style={[styles.road, styles.roadOne]} />
-      <View style={[styles.road, styles.roadTwo]} />
-      <View style={[styles.road, styles.roadThree]} />
-      <View style={[styles.road, styles.roadFour]} />
-      <View style={[styles.street, styles.streetOne]} />
-      <View style={[styles.street, styles.streetTwo]} />
-      <View style={[styles.street, styles.streetThree]} />
-      <View style={[styles.street, styles.streetFour]} />
-
-      <View style={styles.currentLocation}>
-        <View style={styles.currentLocationDot} />
-      </View>
-
-      {pins.map((pin) => (
-        <MapPin icon={pin.icon} key={`${pin.icon}-${pin.left}-${pin.top}`} left={pin.left} top={pin.top} />
-      ))}
-
+      <MapView
+        customMapStyle={mapStyle}
+        initialRegion={{
+          ...mapCenter,
+          latitudeDelta: 0.014,
+          longitudeDelta: 0.014,
+        }}
+        pitchEnabled={false}
+        provider={PROVIDER_GOOGLE}
+        rotateEnabled={false}
+        scrollEnabled={false}
+        showsBuildings={false}
+        showsCompass={false}
+        showsIndoors={false}
+        showsMyLocationButton={false}
+        showsPointsOfInterest={false}
+        style={StyleSheet.absoluteFill}
+        toolbarEnabled={false}
+        zoomEnabled={false}
+      >
+        <Circle
+          center={mapCenter}
+          fillColor="rgba(58, 142, 214, 0.14)"
+          radius={260}
+          strokeColor="rgba(58, 142, 214, 0.08)"
+          strokeWidth={1}
+        />
+        <Marker anchor={{ x: 0.5, y: 0.5 }} coordinate={mapCenter} tracksViewChanges={false} zIndex={2}>
+          <View style={styles.currentLocationDot} />
+        </Marker>
+        {pins.map((pin) => (
+          <Marker
+            anchor={{ x: 0.5, y: 0.92 }}
+            coordinate={pin.coordinate}
+            key={pin.id}
+            tracksViewChanges={false}
+            zIndex={3}
+          >
+            <MapPin icon={pin.icon} />
+          </Marker>
+        ))}
+      </MapView>
+      <View pointerEvents="none" style={styles.mapWash} />
+      <View pointerEvents="none" style={styles.statusFade} />
       <NearbyMapCard />
     </View>
   );
@@ -59,107 +163,18 @@ const styles = StyleSheet.create({
     position: 'relative',
     width: '100%',
   },
+  mapWash: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 253, 247, 0.16)',
+    zIndex: 1,
+  },
   statusFade: {
-    backgroundColor: 'rgba(255, 253, 247, 0.6)',
+    backgroundColor: 'rgba(255, 253, 247, 0.56)',
     height: 132,
     left: 0,
     position: 'absolute',
     right: 0,
     top: 0,
-    zIndex: 2,
-  },
-  park: {
-    backgroundColor: 'rgba(220, 236, 220, 0.78)',
-    position: 'absolute',
-  },
-  parkOne: {
-    borderRadius: 140,
-    height: 270,
-    left: -68,
-    top: 84,
-    width: 300,
-  },
-  parkTwo: {
-    borderRadius: 105,
-    height: 205,
-    right: -58,
-    top: 204,
-    width: 245,
-  },
-  parkThree: {
-    borderRadius: 94,
-    height: 188,
-    left: 206,
-    top: 392,
-    width: 270,
-  },
-  river: {
-    backgroundColor: 'rgba(201, 224, 235, 0.82)',
-    height: 94,
-    left: -126,
-    position: 'absolute',
-    top: 286,
-    transform: [{ rotate: '-25deg' }],
-    width: 720,
-  },
-  road: {
-    backgroundColor: 'rgba(255, 253, 247, 0.84)',
-    borderColor: 'rgba(229, 218, 206, 0.68)',
-    borderWidth: 1,
-    height: 28,
-    left: -108,
-    position: 'absolute',
-    width: 640,
-  },
-  roadOne: {
-    top: 150,
-    transform: [{ rotate: '13deg' }],
-  },
-  roadTwo: {
-    top: 210,
-    transform: [{ rotate: '-9deg' }],
-  },
-  roadThree: {
-    top: 474,
-    transform: [{ rotate: '-11deg' }],
-  },
-  roadFour: {
-    top: 532,
-    transform: [{ rotate: '19deg' }],
-  },
-  street: {
-    backgroundColor: 'rgba(255, 253, 247, 0.56)',
-    height: 12,
-    left: -96,
-    position: 'absolute',
-    width: 640,
-  },
-  streetOne: {
-    top: 332,
-    transform: [{ rotate: '28deg' }],
-  },
-  streetTwo: {
-    top: 386,
-    transform: [{ rotate: '-32deg' }],
-  },
-  streetThree: {
-    top: 448,
-    transform: [{ rotate: '8deg' }],
-  },
-  streetFour: {
-    top: 596,
-    transform: [{ rotate: '-24deg' }],
-  },
-  currentLocation: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(58, 142, 214, 0.14)',
-    borderRadius: 37,
-    height: 74,
-    justifyContent: 'center',
-    left: '46%',
-    position: 'absolute',
-    top: '39%',
-    width: 74,
     zIndex: 2,
   },
   currentLocationDot: {
@@ -168,6 +183,10 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     borderWidth: 4,
     height: 22,
+    shadowColor: '#2C8CDD',
+    shadowOffset: { height: 0, width: 0 },
+    shadowOpacity: 0.22,
+    shadowRadius: 14,
     width: 22,
   },
 });
