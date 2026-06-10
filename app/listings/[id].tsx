@@ -31,11 +31,9 @@ import {
 import { useAuth } from '@/lib/auth';
 import { isListingFavorite, toggleFavorite } from '@/lib/favorites';
 import {
-  categoryIcon,
   getActiveListings,
   getListingForReview,
   listingToNearbyItem,
-  listingTypeLabel,
   type ListingWithRelations,
 } from '@/lib/listings';
 import { createContactForListing } from '@/lib/messages';
@@ -50,19 +48,7 @@ const TEXT = '#20251F';
 const MUTED = '#686D66';
 const BORDER = 'rgba(229, 218, 206, 0.82)';
 const SOFT_GREEN = '#EEF2E6';
-const SOFT_BEIGE = '#F4E8D7';
-const HERO_HEIGHT = 392;
-
-const categoryLabels: Record<string, string> = {
-  electronics: 'Elektroniikka',
-  events: 'Juhlat',
-  home: 'Koti',
-  kids: 'Lapset',
-  outdoors: 'Retkeily ja ulkoilu',
-  sports: 'Urheilu ja pyörät',
-  tools: 'Työkalut ja remontti',
-  travel: 'Matkustus',
-};
+const HERO_HEIGHT = 388;
 
 const reportReasons: { label: string; value: ReportReason }[] = [
   { label: 'Roskaposti', value: 'spam' },
@@ -94,7 +80,6 @@ export default function ListingDetailsScreen() {
   const [feedback, setFeedback] = useState<string | null>(null);
 
   const isOwnListing = !!listing && listing.owner_id === session?.user.id;
-  const categoryLabel = listing?.category_id ? categoryLabels[listing.category_id] ?? 'Muu' : 'Muu';
   const dateOptions = useMemo(() => createDateOptions(21), []);
   const images = listing?.image_urls ?? [];
   const heroWidth = width;
@@ -470,7 +455,7 @@ export default function ListingDetailsScreen() {
                 <View style={styles.metaRow}>
                   <MetaItem icon="location-outline" text="0,6 km" />
                   <Text allowFontScaling={false} style={styles.metaDot}>·</Text>
-                  <Text allowFontScaling={false} numberOfLines={1} style={styles.metaText}>{listing.location_label ?? 'Sijainti ei tiedossa'}</Text>
+                  <Text allowFontScaling={false} numberOfLines={1} style={styles.metaLocationText}>{listing.location_label ?? 'Sijainti ei tiedossa'}</Text>
                   <MetaItem icon="shield-checkmark-outline" text="Luotettu jäsen" />
                 </View>
               </View>
@@ -487,7 +472,7 @@ export default function ListingDetailsScreen() {
               <View style={styles.ownerTextBlock}>
                 <Text allowFontScaling={false} numberOfLines={1} style={styles.ownerName}>{shortName(listing.owner_name)}</Text>
                 <Text allowFontScaling={false} numberOfLines={1} style={styles.ownerLocation}>{listing.location_label ?? 'Neyrlo-käyttäjä'}</Text>
-                <Text allowFontScaling={false} style={styles.ownerResponse}>Vastaa yleensä 1 h sisällä</Text>
+                <Text allowFontScaling={false} numberOfLines={1} style={styles.ownerResponse}>Vastaa yleensä 1 h sisällä</Text>
               </View>
               <View style={styles.ownerSideBlock}>
                 <View style={styles.trustBadge}>
@@ -517,7 +502,7 @@ export default function ListingDetailsScreen() {
             </View>
 
             <View style={styles.gridRow}>
-              <DescriptionCard categoryId={listing.category_id} categoryLabel={categoryLabel} description={listing.description} listingType={listing.listing_type} />
+              <DescriptionCard description={listing.description} />
               <SafetyCard onBlock={handleBlockUser} onReport={openReportMenu} />
             </View>
 
@@ -644,7 +629,7 @@ function PriceCard({ listing }: { listing: ListingWithRelations }) {
           <Ionicons color={DARK_OLIVE} name="pricetag-outline" size={22} />
         </View>
       </View>
-      <Text allowFontScaling={false} numberOfLines={1} style={styles.priceValue}>{formatPrice(listing.price_amount, listing.listing_type)}</Text>
+      <Text allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72} style={styles.priceValue}>{formatPrice(listing.price_amount, listing.listing_type)}</Text>
       <View style={styles.priceFooterRow}>
         <Text allowFontScaling={false} numberOfLines={1} style={styles.priceHint}>Tai tee oma ehdotus</Text>
         <Ionicons color={MUTED} name="chevron-forward" size={16} />
@@ -653,33 +638,14 @@ function PriceCard({ listing }: { listing: ListingWithRelations }) {
   );
 }
 
-function DescriptionCard({
-  categoryId,
-  categoryLabel,
-  description,
-  listingType,
-}: {
-  categoryId: string | null;
-  categoryLabel: string;
-  description: string | null;
-  listingType: ListingWithRelations['listing_type'];
-}) {
+function DescriptionCard({ description }: { description: string | null }) {
   return (
     <View style={[styles.infoPanel, styles.descriptionPanel]}>
       <Text allowFontScaling={false} style={styles.panelTitle}>Kuvaus</Text>
       <Text allowFontScaling={false} numberOfLines={5} style={styles.descriptionText}>{description || 'Ei kuvausta.'}</Text>
-      <View style={styles.descriptionPillsRow}>
-        <View style={styles.includedPill}>
-          <Ionicons color={DARK_OLIVE} name="checkmark-circle" size={16} />
-          <Text allowFontScaling={false} numberOfLines={1} style={styles.includedPillText}>Mukana: sovitaan viesteissä</Text>
-        </View>
-        <View style={styles.categoryPill}>
-          <Ionicons color={DARK_OLIVE} name={categoryIcon(categoryId) as keyof typeof Ionicons.glyphMap} size={15} />
-          <Text allowFontScaling={false} numberOfLines={1} style={styles.categoryPillText}>{categoryLabel}</Text>
-        </View>
-        <View style={styles.typePill}>
-          <Text allowFontScaling={false} numberOfLines={1} style={styles.typePillText}>{listingTypeLabel(listingType)}</Text>
-        </View>
+      <View style={styles.includedPill}>
+        <Ionicons color={DARK_OLIVE} name="checkmark-circle" size={16} />
+        <Text allowFontScaling={false} numberOfLines={1} style={styles.includedPillText}>Mukana: sovitaan</Text>
       </View>
     </View>
   );
@@ -689,11 +655,11 @@ function SafetyCard({ onBlock, onReport }: { onBlock: () => void; onReport: () =
   return (
     <View style={[styles.infoPanel, styles.safetyPanel]}>
       <Text allowFontScaling={false} style={styles.panelTitle}>Turvallista yhdessä</Text>
-      <SafetyRow icon="checkmark-circle-outline" text="Tavarat tarkastetaan" />
+      <SafetyRow icon="checkmark-circle-outline" text="Tavarat tarkistetaan" />
       <SafetyRow icon="people-outline" text="Ystävällinen yhteisö" />
       <SafetyRow icon="shield-checkmark-outline" text="Vakuutettu käyttö" />
       <View style={styles.safetyMoreRow}>
-        <Text allowFontScaling={false} style={styles.safetyMoreText}>Lue lisää turvallisuudesta</Text>
+        <Text allowFontScaling={false} numberOfLines={2} style={styles.safetyMoreText}>Lue lisää turvallisuudesta</Text>
         <Ionicons color={MUTED} name="chevron-forward" size={15} />
       </View>
       <View style={styles.safetyLinksRow}>
@@ -915,6 +881,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.58)',
     borderRadius: 999,
     borderWidth: 1,
+    elevation: 4,
     height: 56,
     justifyContent: 'center',
     position: 'absolute',
@@ -923,7 +890,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.13,
     shadowRadius: 16,
     width: 56,
-    elevation: 4,
   },
   backButton: {
     left: 32,
@@ -970,17 +936,17 @@ const styles = StyleSheet.create({
   title: {
     color: TEXT,
     fontFamily: serifFont,
-    fontSize: 28,
+    fontSize: 27,
     fontWeight: Platform.OS === 'ios' ? '500' : '700',
     letterSpacing: -0.58,
-    lineHeight: 34,
+    lineHeight: 33,
   },
   metaRow: {
     alignItems: 'center',
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 7,
-    marginTop: 10,
+    gap: 6,
+    marginTop: 9,
   },
   metaItem: {
     alignItems: 'center',
@@ -989,8 +955,15 @@ const styles = StyleSheet.create({
   },
   metaText: {
     color: MUTED,
-    fontSize: 13,
+    fontSize: 12.8,
     fontWeight: '600',
+  },
+  metaLocationText: {
+    color: MUTED,
+    flexShrink: 1,
+    fontSize: 12.8,
+    fontWeight: '600',
+    maxWidth: 170,
   },
   metaDot: {
     color: MUTED,
@@ -1018,15 +991,17 @@ const styles = StyleSheet.create({
     borderColor: BORDER,
     borderRadius: 18,
     borderWidth: 1,
+    elevation: 2,
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 20,
-    padding: 14,
+    gap: 11,
+    marginTop: 18,
+    minHeight: 92,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
     shadowColor: DARK_OLIVE_DARK,
     shadowOffset: { height: 5, width: 0 },
     shadowOpacity: 0.05,
     shadowRadius: 13,
-    elevation: 2,
   },
   ownerAvatar: {
     alignItems: 'center',
@@ -1034,13 +1009,13 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(65, 72, 44, 0.10)',
     borderRadius: 999,
     borderWidth: 1,
-    height: 60,
+    height: 56,
     justifyContent: 'center',
-    width: 60,
+    width: 56,
   },
   ownerInitial: {
     color: DARK_OLIVE,
-    fontSize: 21,
+    fontSize: 20,
     fontWeight: '800',
   },
   ownerTextBlock: {
@@ -1049,24 +1024,25 @@ const styles = StyleSheet.create({
   },
   ownerName: {
     color: TEXT,
-    fontSize: 16.5,
+    fontSize: 16.2,
     fontWeight: '800',
   },
   ownerLocation: {
     color: MUTED,
-    fontSize: 13,
+    fontSize: 12.7,
     fontWeight: '600',
     marginTop: 3,
   },
   ownerResponse: {
     color: MUTED,
-    fontSize: 12.5,
+    fontSize: 12.2,
     fontWeight: '600',
     marginTop: 4,
   },
   ownerSideBlock: {
     alignItems: 'flex-end',
-    gap: 7,
+    gap: 6,
+    maxWidth: 114,
   },
   trustBadge: {
     alignItems: 'center',
@@ -1074,12 +1050,12 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     flexDirection: 'row',
     gap: 4,
-    paddingHorizontal: 9,
-    paddingVertical: 7,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
   },
   trustBadgeText: {
     color: DARK_OLIVE,
-    fontSize: 10.5,
+    fontSize: 10.2,
     fontWeight: '700',
   },
   ratingRow: {
@@ -1103,19 +1079,21 @@ const styles = StyleSheet.create({
     borderColor: BORDER,
     borderRadius: 18,
     borderWidth: 1,
+    elevation: 1,
     flex: 1,
     padding: 16,
     shadowColor: DARK_OLIVE_DARK,
     shadowOffset: { height: 5, width: 0 },
     shadowOpacity: 0.035,
     shadowRadius: 12,
-    elevation: 1,
   },
   availabilityPanel: {
-    minHeight: 178,
+    flex: 1.22,
+    minHeight: 166,
   },
   pricePanel: {
-    minHeight: 178,
+    flex: 0.95,
+    minHeight: 166,
   },
   panelHeaderRow: {
     alignItems: 'flex-start',
@@ -1125,43 +1103,43 @@ const styles = StyleSheet.create({
   panelTitle: {
     color: TEXT,
     fontFamily: serifFont,
-    fontSize: 16.5,
+    fontSize: 16.3,
     fontWeight: Platform.OS === 'ios' ? '500' : '700',
     letterSpacing: -0.2,
-    lineHeight: 21,
+    lineHeight: 20,
   },
   roundIcon: {
     alignItems: 'center',
     backgroundColor: SOFT_GREEN,
     borderRadius: 999,
-    height: 46,
+    height: 44,
     justifyContent: 'center',
-    width: 46,
+    width: 44,
   },
   weekRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 14,
+    marginTop: 13,
   },
   dayColumn: {
     alignItems: 'center',
-    width: 25,
+    width: 20,
   },
   dayPressed: {
     opacity: 0.75,
   },
   weekdayText: {
     color: TEXT,
-    fontSize: 9.5,
+    fontSize: 8.5,
     fontWeight: '700',
     marginBottom: 7,
   },
   dayCircle: {
     alignItems: 'center',
     borderRadius: 999,
-    height: 27,
+    height: 25,
     justifyContent: 'center',
-    width: 27,
+    width: 25,
   },
   dayCircleSelected: {
     backgroundColor: DARK_OLIVE,
@@ -1174,7 +1152,7 @@ const styles = StyleSheet.create({
   },
   dayText: {
     color: TEXT,
-    fontSize: 13.2,
+    fontSize: 12.4,
     fontWeight: '600',
   },
   dayTextSelected: {
@@ -1210,20 +1188,21 @@ const styles = StyleSheet.create({
   panelFooterText: {
     color: MUTED,
     flex: 1,
-    fontSize: 12.2,
+    fontSize: 11.4,
     fontWeight: '700',
   },
   priceValue: {
     color: TEXT,
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '800',
     letterSpacing: -0.36,
-    marginTop: 22,
+    lineHeight: 34,
+    marginTop: 24,
   },
   priceHint: {
     color: MUTED,
     flex: 1,
-    fontSize: 12.2,
+    fontSize: 11.4,
     fontWeight: '700',
   },
   priceFooterRow: {
@@ -1234,32 +1213,26 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   descriptionPanel: {
-    minHeight: 184,
+    minHeight: 172,
   },
   safetyPanel: {
-    minHeight: 184,
+    minHeight: 172,
   },
   descriptionText: {
     color: '#3C4039',
-    fontSize: 13.2,
+    fontSize: 13,
     fontWeight: '500',
     lineHeight: 19,
     marginTop: 11,
   },
-  descriptionPillsRow: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 7,
-    marginTop: 'auto',
-    paddingTop: 13,
-  },
   includedPill: {
     alignItems: 'center',
+    alignSelf: 'flex-start',
     backgroundColor: SOFT_GREEN,
     borderRadius: 999,
     flexDirection: 'row',
     gap: 5,
+    marginTop: 'auto',
     maxWidth: '100%',
     paddingHorizontal: 10,
     paddingVertical: 8,
@@ -1268,69 +1241,43 @@ const styles = StyleSheet.create({
     color: DARK_OLIVE,
     fontSize: 11.2,
     fontWeight: '700',
-    maxWidth: 150,
-  },
-  categoryPill: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(238, 242, 230, 0.72)',
-    borderRadius: 999,
-    flexDirection: 'row',
-    gap: 5,
-    maxWidth: '100%',
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-  },
-  categoryPillText: {
-    color: DARK_OLIVE,
-    fontSize: 11,
-    fontWeight: '700',
-    maxWidth: 136,
-  },
-  typePill: {
-    backgroundColor: SOFT_BEIGE,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-  },
-  typePillText: {
-    color: DARK_OLIVE,
-    fontSize: 11,
-    fontWeight: '700',
+    maxWidth: 125,
   },
   safetyRow: {
     alignItems: 'center',
     flexDirection: 'row',
     gap: 8,
-    marginTop: 12,
+    marginTop: 11,
   },
   safetyRowText: {
     color: MUTED,
     flex: 1,
-    fontSize: 12.2,
+    fontSize: 11.6,
     fontWeight: '600',
   },
   safetyMoreRow: {
     alignItems: 'center',
     flexDirection: 'row',
     gap: 4,
-    marginTop: 13,
+    marginTop: 12,
   },
   safetyMoreText: {
     color: MUTED,
     flex: 1,
-    fontSize: 12.1,
+    fontSize: 11.6,
     fontWeight: '600',
+    lineHeight: 15,
   },
   safetyLinksRow: {
     alignItems: 'center',
     flexDirection: 'row',
     gap: 7,
     marginTop: 'auto',
-    paddingTop: 10,
+    paddingTop: 8,
   },
   safetyLinkText: {
     color: DARK_OLIVE,
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: '800',
   },
   safetyLink: {
@@ -1346,13 +1293,13 @@ const styles = StyleSheet.create({
     borderColor: BORDER,
     borderRadius: 18,
     borderWidth: 1,
+    elevation: 2,
     marginTop: 18,
     padding: 18,
     shadowColor: DARK_OLIVE_DARK,
     shadowOffset: { height: 5, width: 0 },
     shadowOpacity: 0.04,
     shadowRadius: 13,
-    elevation: 2,
   },
   requestHeaderRow: {
     alignItems: 'flex-start',
@@ -1443,6 +1390,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: DARK_OLIVE,
     borderRadius: 999,
+    elevation: 2,
     height: 48,
     justifyContent: 'center',
     paddingHorizontal: 12,
@@ -1451,7 +1399,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.14,
     shadowRadius: 12,
     width: '100%',
-    elevation: 2,
   },
   requestButtonText: {
     color: '#FFFFFF',
