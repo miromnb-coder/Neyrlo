@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -16,12 +17,12 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   createDateOptions,
   dateRangeContains,
   dateRangesOverlap,
-  formatDateRange,
   getListingAvailability,
   getReservedDateRanges,
   type ListingAvailabilityRange,
@@ -42,15 +43,15 @@ import { blockUser, reportListing, type ReportReason } from '@/lib/safety';
 import type { NearbyItem } from '@/types/item';
 
 const BACKGROUND = '#FFFDF7';
+const CARD = 'rgba(255, 253, 249, 0.98)';
 const DARK_OLIVE = '#41482C';
 const DARK_OLIVE_DARK = '#30361F';
 const TEXT = '#20251F';
 const MUTED = '#686D66';
 const BORDER = 'rgba(229, 218, 206, 0.82)';
-const CARD = 'rgba(255, 253, 249, 0.97)';
 const SOFT_GREEN = '#EEF2E6';
 const SOFT_BEIGE = '#F4E8D7';
-const HERO_HEIGHT = 378;
+const HERO_HEIGHT = 392;
 
 const categoryLabels: Record<string, string> = {
   electronics: 'Elektroniikka',
@@ -73,6 +74,7 @@ const reportReasons: { label: string; value: ReportReason }[] = [
 
 export default function ListingDetailsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const { session } = useAuth();
   const params = useLocalSearchParams<{ id?: string }>();
@@ -398,9 +400,14 @@ export default function ListingDetailsScreen() {
     router.push({ pathname: '/users/[id]', params: { id: listing.owner_id } });
   };
 
+  const showAllSimilar = () => {
+    router.push('/browse');
+  };
+
   if (loading) {
     return (
       <View style={styles.screen}>
+        <StatusBar style="dark" />
         <View style={styles.loadingWrap}>
           <ActivityIndicator color={DARK_OLIVE} size="small" />
           <Text allowFontScaling={false} style={styles.loadingText}>Ladataan ilmoitusta...</Text>
@@ -411,6 +418,7 @@ export default function ListingDetailsScreen() {
 
   return (
     <View style={styles.screen}>
+      <StatusBar style="light" />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.heroSection}>
           {images.length > 0 ? (
@@ -421,17 +429,29 @@ export default function ListingDetailsScreen() {
             </ScrollView>
           ) : (
             <View style={[styles.emptyImage, { width: heroWidth }]}> 
-              <Ionicons color={DARK_OLIVE} name="image-outline" size={44} />
+              <Ionicons color={DARK_OLIVE} name="image-outline" size={46} />
+              <Text allowFontScaling={false} style={styles.emptyImageText}>Kuva tulossa</Text>
             </View>
           )}
 
-          <View style={styles.heroShade} />
+          <View pointerEvents="none" style={styles.heroTopShade} />
+          <View pointerEvents="none" style={styles.heroBottomShade} />
 
-          <Pressable accessibilityLabel="Takaisin" hitSlop={12} onPress={() => router.back()} style={({ pressed }) => [styles.heroIconButton, styles.backButton, pressed && styles.pressed]}>
+          <Pressable
+            accessibilityLabel="Takaisin"
+            hitSlop={12}
+            onPress={() => router.back()}
+            style={({ pressed }) => [styles.heroIconButton, styles.backButton, { top: insets.top + 18 }, pressed && styles.pressed]}
+          >
             <Ionicons color={TEXT} name="chevron-back" size={28} />
           </Pressable>
 
-          <Pressable accessibilityLabel="Suosikki" onPress={handleFavorite} style={({ pressed }) => [styles.heroIconButton, styles.favoriteButton, pressed && styles.pressed]}>
+          <Pressable
+            accessibilityLabel="Suosikki"
+            hitSlop={12}
+            onPress={handleFavorite}
+            style={({ pressed }) => [styles.heroIconButton, styles.favoriteButton, { top: insets.top + 18 }, pressed && styles.pressed]}
+          >
             {safetyLoading ? <ActivityIndicator color={DARK_OLIVE} size="small" /> : <Ionicons color={DARK_OLIVE} name={isFavorite ? 'heart' : 'heart-outline'} size={25} />}
           </Pressable>
 
@@ -448,12 +468,10 @@ export default function ListingDetailsScreen() {
               <View style={styles.titleBlock}>
                 <Text allowFontScaling={false} numberOfLines={2} style={styles.title}>{listing.title}</Text>
                 <View style={styles.metaRow}>
-                  <Ionicons color={MUTED} name="location-outline" size={15} />
-                  <Text allowFontScaling={false} style={styles.metaText}>0,6 km</Text>
+                  <MetaItem icon="location-outline" text="0,6 km" />
                   <Text allowFontScaling={false} style={styles.metaDot}>·</Text>
                   <Text allowFontScaling={false} numberOfLines={1} style={styles.metaText}>{listing.location_label ?? 'Sijainti ei tiedossa'}</Text>
-                  <Ionicons color={MUTED} name="shield-checkmark-outline" size={15} style={styles.trustIcon} />
-                  <Text allowFontScaling={false} style={styles.metaText}>Luotettu jäsen</Text>
+                  <MetaItem icon="shield-checkmark-outline" text="Luotettu jäsen" />
                 </View>
               </View>
               <View style={styles.pickupPill}>
@@ -471,11 +489,19 @@ export default function ListingDetailsScreen() {
                 <Text allowFontScaling={false} numberOfLines={1} style={styles.ownerLocation}>{listing.location_label ?? 'Neyrlo-käyttäjä'}</Text>
                 <Text allowFontScaling={false} style={styles.ownerResponse}>Vastaa yleensä 1 h sisällä</Text>
               </View>
-              <View style={styles.trustBadge}>
-                <Ionicons color={DARK_OLIVE} name="shield-checkmark-outline" size={14} />
-                <Text allowFontScaling={false} style={styles.trustBadgeText}>Luotettu jäsen</Text>
+              <View style={styles.ownerSideBlock}>
+                <View style={styles.trustBadge}>
+                  <Ionicons color={DARK_OLIVE} name="shield-checkmark-outline" size={13} />
+                  <Text allowFontScaling={false} style={styles.trustBadgeText}>Luotettu jäsen</Text>
+                </View>
+                {listing.owner_rating > 0 && (
+                  <View style={styles.ratingRow}>
+                    <Ionicons color="#C89C3A" name="star" size={12} />
+                    <Text allowFontScaling={false} style={styles.ratingText}>{listing.owner_rating.toFixed(1).replace('.', ',')}</Text>
+                  </View>
+                )}
               </View>
-              <Ionicons color={MUTED} name="chevron-forward" size={20} />
+              <Ionicons color={MUTED} name="chevron-forward" size={19} />
             </Pressable>
 
             <View style={styles.gridRow}>
@@ -491,7 +517,7 @@ export default function ListingDetailsScreen() {
             </View>
 
             <View style={styles.gridRow}>
-              <DescriptionCard description={listing.description} />
+              <DescriptionCard categoryId={listing.category_id} categoryLabel={categoryLabel} description={listing.description} listingType={listing.listing_type} />
               <SafetyCard onBlock={handleBlockUser} onReport={openReportMenu} />
             </View>
 
@@ -532,7 +558,7 @@ export default function ListingDetailsScreen() {
               <View style={styles.similarSection}>
                 <View style={styles.similarHeader}>
                   <Text allowFontScaling={false} style={styles.similarTitle}>Samankaltaiset tavarat</Text>
-                  <Pressable style={({ pressed }) => [styles.showAllButton, pressed && styles.pressed]}>
+                  <Pressable onPress={showAllSimilar} style={({ pressed }) => [styles.showAllButton, pressed && styles.pressed]}>
                     <Text allowFontScaling={false} style={styles.showAllText}>Näytä kaikki</Text>
                     <Ionicons color={DARK_OLIVE} name="chevron-forward" size={17} />
                   </Pressable>
@@ -552,6 +578,15 @@ export default function ListingDetailsScreen() {
           </View>
         )}
       </ScrollView>
+    </View>
+  );
+}
+
+function MetaItem({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text: string }) {
+  return (
+    <View style={styles.metaItem}>
+      <Ionicons color={MUTED} name={icon} size={15} />
+      <Text allowFontScaling={false} numberOfLines={1} style={styles.metaText}>{text}</Text>
     </View>
   );
 }
@@ -581,7 +616,7 @@ function AvailabilityPreview({
           const isInside = !!selectedStartDate && !!selectedEndDate && option.value > selectedStartDate && option.value < selectedEndDate;
 
           return (
-            <Pressable disabled={isUnavailable} key={option.value} onPress={() => onDatePress(option.value)} style={styles.dayColumn}>
+            <Pressable disabled={isUnavailable} key={option.value} onPress={() => onDatePress(option.value)} style={({ pressed }) => [styles.dayColumn, pressed && styles.dayPressed]}>
               <Text allowFontScaling={false} style={styles.weekdayText}>{option.weekday.toUpperCase()}</Text>
               <View style={[styles.dayCircle, isSelected && styles.dayCircleSelected, isInside && styles.dayCircleInside, isUnavailable && styles.dayCircleUnavailable]}>
                 <Text allowFontScaling={false} style={[styles.dayText, isSelected && styles.dayTextSelected, isUnavailable && styles.dayTextUnavailable]}>{option.day}</Text>
@@ -593,7 +628,7 @@ function AvailabilityPreview({
       </View>
       <Pressable onPress={onOpenAll} style={({ pressed }) => [styles.panelFooterButton, pressed && styles.pressed]}>
         <Ionicons color={MUTED} name="calendar-outline" size={16} />
-        <Text allowFontScaling={false} style={styles.panelFooterText}>Katso kaikki saatavuudet</Text>
+        <Text allowFontScaling={false} numberOfLines={1} style={styles.panelFooterText}>Katso kaikki saatavuudet</Text>
         <Ionicons color={MUTED} name="chevron-forward" size={16} />
       </Pressable>
     </View>
@@ -609,23 +644,42 @@ function PriceCard({ listing }: { listing: ListingWithRelations }) {
           <Ionicons color={DARK_OLIVE} name="pricetag-outline" size={22} />
         </View>
       </View>
-      <Text allowFontScaling={false} style={styles.priceValue}>{formatPrice(listing.price_amount, listing.listing_type)}</Text>
+      <Text allowFontScaling={false} numberOfLines={1} style={styles.priceValue}>{formatPrice(listing.price_amount, listing.listing_type)}</Text>
       <View style={styles.priceFooterRow}>
-        <Text allowFontScaling={false} style={styles.priceHint}>Tai tee oma ehdotus</Text>
+        <Text allowFontScaling={false} numberOfLines={1} style={styles.priceHint}>Tai tee oma ehdotus</Text>
         <Ionicons color={MUTED} name="chevron-forward" size={16} />
       </View>
     </View>
   );
 }
 
-function DescriptionCard({ description }: { description: string | null }) {
+function DescriptionCard({
+  categoryId,
+  categoryLabel,
+  description,
+  listingType,
+}: {
+  categoryId: string | null;
+  categoryLabel: string;
+  description: string | null;
+  listingType: ListingWithRelations['listing_type'];
+}) {
   return (
     <View style={[styles.infoPanel, styles.descriptionPanel]}>
       <Text allowFontScaling={false} style={styles.panelTitle}>Kuvaus</Text>
       <Text allowFontScaling={false} numberOfLines={5} style={styles.descriptionText}>{description || 'Ei kuvausta.'}</Text>
-      <View style={styles.includedPill}>
-        <Ionicons color="#FFFFFF" name="checkmark-circle" size={17} />
-        <Text allowFontScaling={false} style={styles.includedPillText}>Mukana: sovitaan viesteissä</Text>
+      <View style={styles.descriptionPillsRow}>
+        <View style={styles.includedPill}>
+          <Ionicons color={DARK_OLIVE} name="checkmark-circle" size={16} />
+          <Text allowFontScaling={false} numberOfLines={1} style={styles.includedPillText}>Mukana: sovitaan viesteissä</Text>
+        </View>
+        <View style={styles.categoryPill}>
+          <Ionicons color={DARK_OLIVE} name={categoryIcon(categoryId) as keyof typeof Ionicons.glyphMap} size={15} />
+          <Text allowFontScaling={false} numberOfLines={1} style={styles.categoryPillText}>{categoryLabel}</Text>
+        </View>
+        <View style={styles.typePill}>
+          <Text allowFontScaling={false} numberOfLines={1} style={styles.typePillText}>{listingTypeLabel(listingType)}</Text>
+        </View>
       </View>
     </View>
   );
@@ -638,6 +692,10 @@ function SafetyCard({ onBlock, onReport }: { onBlock: () => void; onReport: () =
       <SafetyRow icon="checkmark-circle-outline" text="Tavarat tarkastetaan" />
       <SafetyRow icon="people-outline" text="Ystävällinen yhteisö" />
       <SafetyRow icon="shield-checkmark-outline" text="Vakuutettu käyttö" />
+      <View style={styles.safetyMoreRow}>
+        <Text allowFontScaling={false} style={styles.safetyMoreText}>Lue lisää turvallisuudesta</Text>
+        <Ionicons color={MUTED} name="chevron-forward" size={15} />
+      </View>
       <View style={styles.safetyLinksRow}>
         <Pressable onPress={onReport} style={({ pressed }) => [styles.safetyLink, pressed && styles.pressed]}>
           <Text allowFontScaling={false} style={styles.safetyLinkText}>Raportoi</Text>
@@ -655,7 +713,7 @@ function SafetyRow({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text:
   return (
     <View style={styles.safetyRow}>
       <Ionicons color={DARK_OLIVE} name={icon} size={15} />
-      <Text allowFontScaling={false} style={styles.safetyRowText}>{text}</Text>
+      <Text allowFontScaling={false} numberOfLines={1} style={styles.safetyRowText}>{text}</Text>
     </View>
   );
 }
@@ -685,12 +743,12 @@ function RequestCard({
     <View style={styles.requestCard}>
       <View style={styles.requestHeaderRow}>
         <View style={styles.requestTitleBlock}>
-          <Text allowFontScaling={false} style={styles.requestTitle}>Pyydä varausta {firstName(listing.owner_name)}lta</Text>
+          <Text allowFontScaling={false} style={styles.requestTitle}>Pyydä varausta {ownerRequestName(listing.owner_name)}</Text>
           <Text allowFontScaling={false} style={styles.requestSubtitle}>Valitse ajankohta ja lähetä pyyntö. Saat vastauksen pian.</Text>
         </View>
         <View style={styles.responsePill}>
           <Ionicons color={DARK_OLIVE} name="time-outline" size={15} />
-          <Text allowFontScaling={false} style={styles.responsePillText}>Vastaus yleensä 1 h sisällä</Text>
+          <Text allowFontScaling={false} numberOfLines={1} style={styles.responsePillText}>Vastaus yleensä 1 h sisällä</Text>
         </View>
       </View>
 
@@ -703,7 +761,7 @@ function RequestCard({
 
         <View style={styles.requestButtonBlock}>
           <Pressable disabled={disabled} onPress={onSubmit} style={({ pressed }) => [styles.requestButton, disabled && styles.disabledButton, pressed && styles.pressed]}>
-            {loading ? <ActivityIndicator color="#FFFFFF" size="small" /> : <Text allowFontScaling={false} style={styles.requestButtonText}>{title}</Text>}
+            {loading ? <ActivityIndicator color="#FFFFFF" size="small" /> : <Text allowFontScaling={false} numberOfLines={1} style={styles.requestButtonText}>{title}</Text>}
           </Pressable>
           <View style={styles.noChargeRow}>
             <Ionicons color={MUTED} name="lock-closed-outline" size={12} />
@@ -738,7 +796,7 @@ function SimilarCard({ item, onPress }: { item: NearbyItem; onPress: () => void 
         </View>
       </View>
       <View style={styles.similarBody}>
-        <Text allowFontScaling={false} numberOfLines={1} style={styles.similarCardTitle}>{item.title}</Text>
+        <Text allowFontScaling={false} numberOfLines={2} style={styles.similarCardTitle}>{item.title}</Text>
         <Text allowFontScaling={false} numberOfLines={1} style={styles.similarMeta}>{item.distanceKm.toFixed(1).replace('.', ',')} km · {item.locationLabel ?? 'Lähellä'}</Text>
       </View>
     </Pressable>
@@ -782,8 +840,10 @@ function shortName(name: string) {
   return `${parts[0]} ${parts[1].charAt(0)}.`;
 }
 
-function firstName(name: string) {
-  return name.trim().split(/\s+/).filter(Boolean)[0] || 'omistaja';
+function ownerRequestName(name: string) {
+  const first = name.trim().split(/\s+/).filter(Boolean)[0] || 'omistaja';
+  if (first.toLowerCase() === 'omistaja') return 'omistajalta';
+  return `${first}lta`;
 }
 
 function capitalize(value: string) {
@@ -806,7 +866,7 @@ const styles = StyleSheet.create({
   loadingText: {
     color: MUTED,
     fontSize: 14,
-    fontWeight: '650',
+    fontWeight: '600',
   },
   content: {
     paddingBottom: 38,
@@ -827,39 +887,55 @@ const styles = StyleSheet.create({
     height: HERO_HEIGHT,
     justifyContent: 'center',
   },
-  heroShade: {
-    backgroundColor: 'rgba(0,0,0,0.10)',
-    height: 132,
+  emptyImageText: {
+    color: MUTED,
+    fontSize: 13,
+    fontWeight: '700',
+    marginTop: 10,
+  },
+  heroTopShade: {
+    backgroundColor: 'rgba(0,0,0,0.18)',
+    height: 150,
     left: 0,
     position: 'absolute',
     right: 0,
     top: 0,
   },
+  heroBottomShade: {
+    backgroundColor: 'rgba(0,0,0,0.06)',
+    bottom: 0,
+    height: 118,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+  },
   heroIconButton: {
     alignItems: 'center',
     backgroundColor: 'rgba(255, 253, 247, 0.94)',
+    borderColor: 'rgba(255,255,255,0.58)',
     borderRadius: 999,
+    borderWidth: 1,
     height: 56,
     justifyContent: 'center',
     position: 'absolute',
-    shadowColor: '#1F261B',
-    shadowOffset: { height: 7, width: 0 },
-    shadowOpacity: 0.08,
-    shadowRadius: 14,
-    top: 54,
+    shadowColor: DARK_OLIVE_DARK,
+    shadowOffset: { height: 8, width: 0 },
+    shadowOpacity: 0.13,
+    shadowRadius: 16,
     width: 56,
+    elevation: 4,
   },
   backButton: {
-    left: 34,
+    left: 32,
   },
   favoriteButton: {
-    right: 34,
+    right: 32,
   },
   imageCountBadge: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 253, 247, 0.82)',
+    backgroundColor: 'rgba(255, 253, 247, 0.86)',
     borderRadius: 999,
-    bottom: 26,
+    bottom: 28,
     height: 34,
     justifyContent: 'center',
     left: '50%',
@@ -869,14 +945,14 @@ const styles = StyleSheet.create({
   },
   imageCountText: {
     color: TEXT,
-    fontSize: 14.5,
-    fontWeight: '750',
+    fontSize: 14,
+    fontWeight: '700',
   },
   sheet: {
     backgroundColor: BACKGROUND,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    marginTop: -24,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    marginTop: -30,
     paddingBottom: 34,
     paddingHorizontal: 22,
     paddingTop: 24,
@@ -896,28 +972,30 @@ const styles = StyleSheet.create({
     fontFamily: serifFont,
     fontSize: 28,
     fontWeight: Platform.OS === 'ios' ? '500' : '700',
-    letterSpacing: -0.55,
+    letterSpacing: -0.58,
     lineHeight: 34,
   },
   metaRow: {
     alignItems: 'center',
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 9,
+    gap: 7,
+    marginTop: 10,
+  },
+  metaItem: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 5,
   },
   metaText: {
     color: MUTED,
-    fontSize: 13.2,
-    fontWeight: '650',
+    fontSize: 13,
+    fontWeight: '600',
   },
   metaDot: {
     color: MUTED,
     fontSize: 13,
-    fontWeight: '850',
-  },
-  trustIcon: {
-    marginLeft: 6,
+    fontWeight: '800',
   },
   pickupPill: {
     alignItems: 'center',
@@ -931,23 +1009,24 @@ const styles = StyleSheet.create({
   },
   pickupText: {
     color: DARK_OLIVE,
-    fontSize: 13.2,
-    fontWeight: '750',
+    fontSize: 13,
+    fontWeight: '700',
   },
   ownerCard: {
     alignItems: 'center',
     backgroundColor: CARD,
     borderColor: BORDER,
-    borderRadius: 17,
+    borderRadius: 18,
     borderWidth: 1,
     flexDirection: 'row',
     gap: 12,
     marginTop: 20,
     padding: 14,
-    shadowColor: '#1F261B',
-    shadowOffset: { height: 4, width: 0 },
-    shadowOpacity: 0.035,
-    shadowRadius: 10,
+    shadowColor: DARK_OLIVE_DARK,
+    shadowOffset: { height: 5, width: 0 },
+    shadowOpacity: 0.05,
+    shadowRadius: 13,
+    elevation: 2,
   },
   ownerAvatar: {
     alignItems: 'center',
@@ -955,14 +1034,14 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(65, 72, 44, 0.10)',
     borderRadius: 999,
     borderWidth: 1,
-    height: 58,
+    height: 60,
     justifyContent: 'center',
-    width: 58,
+    width: 60,
   },
   ownerInitial: {
     color: DARK_OLIVE,
-    fontSize: 20,
-    fontWeight: '900',
+    fontSize: 21,
+    fontWeight: '800',
   },
   ownerTextBlock: {
     flex: 1,
@@ -970,12 +1049,12 @@ const styles = StyleSheet.create({
   },
   ownerName: {
     color: TEXT,
-    fontSize: 16.6,
+    fontSize: 16.5,
     fontWeight: '800',
   },
   ownerLocation: {
     color: MUTED,
-    fontSize: 13.2,
+    fontSize: 13,
     fontWeight: '600',
     marginTop: 3,
   },
@@ -984,6 +1063,10 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     fontWeight: '600',
     marginTop: 4,
+  },
+  ownerSideBlock: {
+    alignItems: 'flex-end',
+    gap: 7,
   },
   trustBadge: {
     alignItems: 'center',
@@ -996,8 +1079,19 @@ const styles = StyleSheet.create({
   },
   trustBadgeText: {
     color: DARK_OLIVE,
-    fontSize: 10.8,
-    fontWeight: '750',
+    fontSize: 10.5,
+    fontWeight: '700',
+  },
+  ratingRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 3,
+    paddingRight: 4,
+  },
+  ratingText: {
+    color: MUTED,
+    fontSize: 11.5,
+    fontWeight: '700',
   },
   gridRow: {
     flexDirection: 'row',
@@ -1007,14 +1101,15 @@ const styles = StyleSheet.create({
   infoPanel: {
     backgroundColor: CARD,
     borderColor: BORDER,
-    borderRadius: 17,
+    borderRadius: 18,
     borderWidth: 1,
     flex: 1,
     padding: 16,
-    shadowColor: '#1F261B',
-    shadowOffset: { height: 4, width: 0 },
-    shadowOpacity: 0.025,
-    shadowRadius: 10,
+    shadowColor: DARK_OLIVE_DARK,
+    shadowOffset: { height: 5, width: 0 },
+    shadowOpacity: 0.035,
+    shadowRadius: 12,
+    elevation: 1,
   },
   availabilityPanel: {
     minHeight: 178,
@@ -1052,10 +1147,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: 25,
   },
+  dayPressed: {
+    opacity: 0.75,
+  },
   weekdayText: {
     color: TEXT,
     fontSize: 9.5,
-    fontWeight: '750',
+    fontWeight: '700',
     marginBottom: 7,
   },
   dayCircle: {
@@ -1077,11 +1175,11 @@ const styles = StyleSheet.create({
   dayText: {
     color: TEXT,
     fontSize: 13.2,
-    fontWeight: '650',
+    fontWeight: '600',
   },
   dayTextSelected: {
     color: '#FFFFFF',
-    fontWeight: '850',
+    fontWeight: '800',
   },
   dayTextUnavailable: {
     color: MUTED,
@@ -1112,20 +1210,20 @@ const styles = StyleSheet.create({
   panelFooterText: {
     color: MUTED,
     flex: 1,
-    fontSize: 12.3,
+    fontSize: 12.2,
     fontWeight: '700',
   },
   priceValue: {
     color: TEXT,
-    fontSize: 27,
-    fontWeight: '900',
-    letterSpacing: -0.35,
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: -0.36,
     marginTop: 22,
   },
   priceHint: {
     color: MUTED,
     flex: 1,
-    fontSize: 12.3,
+    fontSize: 12.2,
     fontWeight: '700',
   },
   priceFooterRow: {
@@ -1136,10 +1234,10 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   descriptionPanel: {
-    minHeight: 172,
+    minHeight: 184,
   },
   safetyPanel: {
-    minHeight: 172,
+    minHeight: 184,
   },
   descriptionText: {
     color: '#3C4039',
@@ -1148,21 +1246,56 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     marginTop: 11,
   },
+  descriptionPillsRow: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 7,
+    marginTop: 'auto',
+    paddingTop: 13,
+  },
   includedPill: {
     alignItems: 'center',
-    alignSelf: 'flex-start',
     backgroundColor: SOFT_GREEN,
     borderRadius: 999,
     flexDirection: 'row',
-    gap: 6,
-    marginTop: 'auto',
+    gap: 5,
+    maxWidth: '100%',
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
   includedPillText: {
     color: DARK_OLIVE,
-    fontSize: 11.5,
-    fontWeight: '750',
+    fontSize: 11.2,
+    fontWeight: '700',
+    maxWidth: 150,
+  },
+  categoryPill: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(238, 242, 230, 0.72)',
+    borderRadius: 999,
+    flexDirection: 'row',
+    gap: 5,
+    maxWidth: '100%',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  categoryPillText: {
+    color: DARK_OLIVE,
+    fontSize: 11,
+    fontWeight: '700',
+    maxWidth: 136,
+  },
+  typePill: {
+    backgroundColor: SOFT_BEIGE,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  typePillText: {
+    color: DARK_OLIVE,
+    fontSize: 11,
+    fontWeight: '700',
   },
   safetyRow: {
     alignItems: 'center',
@@ -1174,14 +1307,26 @@ const styles = StyleSheet.create({
     color: MUTED,
     flex: 1,
     fontSize: 12.2,
-    fontWeight: '650',
+    fontWeight: '600',
+  },
+  safetyMoreRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 4,
+    marginTop: 13,
+  },
+  safetyMoreText: {
+    color: MUTED,
+    flex: 1,
+    fontSize: 12.1,
+    fontWeight: '600',
   },
   safetyLinksRow: {
     alignItems: 'center',
     flexDirection: 'row',
     gap: 7,
     marginTop: 'auto',
-    paddingTop: 12,
+    paddingTop: 10,
   },
   safetyLinkText: {
     color: DARK_OLIVE,
@@ -1194,19 +1339,20 @@ const styles = StyleSheet.create({
   safetySeparator: {
     color: MUTED,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '800',
   },
   requestCard: {
     backgroundColor: CARD,
     borderColor: BORDER,
-    borderRadius: 17,
+    borderRadius: 18,
     borderWidth: 1,
     marginTop: 18,
     padding: 18,
-    shadowColor: '#1F261B',
+    shadowColor: DARK_OLIVE_DARK,
     shadowOffset: { height: 5, width: 0 },
-    shadowOpacity: 0.035,
-    shadowRadius: 12,
+    shadowOpacity: 0.04,
+    shadowRadius: 13,
+    elevation: 2,
   },
   requestHeaderRow: {
     alignItems: 'flex-start',
@@ -1239,13 +1385,14 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     flexDirection: 'row',
     gap: 5,
+    maxWidth: 172,
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
   responsePillText: {
     color: DARK_OLIVE,
     fontSize: 10.5,
-    fontWeight: '750',
+    fontWeight: '700',
   },
   requestBodyRow: {
     alignItems: 'flex-end',
@@ -1285,12 +1432,12 @@ const styles = StyleSheet.create({
   dateFieldText: {
     color: TEXT,
     flex: 1,
-    fontSize: 11.7,
+    fontSize: 11.5,
     fontWeight: '700',
   },
   requestButtonBlock: {
     alignItems: 'center',
-    width: 134,
+    width: 136,
   },
   requestButton: {
     alignItems: 'center',
@@ -1298,12 +1445,18 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     height: 48,
     justifyContent: 'center',
+    paddingHorizontal: 12,
+    shadowColor: DARK_OLIVE_DARK,
+    shadowOffset: { height: 5, width: 0 },
+    shadowOpacity: 0.14,
+    shadowRadius: 12,
     width: '100%',
+    elevation: 2,
   },
   requestButtonText: {
     color: '#FFFFFF',
-    fontSize: 13.2,
-    fontWeight: '850',
+    fontSize: 13,
+    fontWeight: '800',
   },
   disabledButton: {
     opacity: 0.5,
@@ -1317,7 +1470,7 @@ const styles = StyleSheet.create({
   noChargeText: {
     color: MUTED,
     fontSize: 10.8,
-    fontWeight: '650',
+    fontWeight: '600',
   },
   feedbackCard: {
     alignItems: 'flex-start',
@@ -1334,7 +1487,7 @@ const styles = StyleSheet.create({
     color: DARK_OLIVE,
     flex: 1,
     fontSize: 13,
-    fontWeight: '650',
+    fontWeight: '600',
     lineHeight: 19,
   },
   errorCard: {
@@ -1359,7 +1512,7 @@ const styles = StyleSheet.create({
   similarTitle: {
     color: TEXT,
     fontFamily: serifFont,
-    fontSize: 19.5,
+    fontSize: 20,
     fontWeight: Platform.OS === 'ios' ? '500' : '700',
     letterSpacing: -0.25,
   },
@@ -1371,7 +1524,7 @@ const styles = StyleSheet.create({
   showAllText: {
     color: DARK_OLIVE,
     fontSize: 12.5,
-    fontWeight: '750',
+    fontWeight: '700',
   },
   similarRow: {
     gap: 12,
@@ -1408,12 +1561,14 @@ const styles = StyleSheet.create({
   },
   similarBody: {
     gap: 4,
+    minHeight: 68,
     padding: 10,
   },
   similarCardTitle: {
     color: TEXT,
     fontSize: 12.7,
     fontWeight: '800',
+    lineHeight: 16,
   },
   similarMeta: {
     color: MUTED,
