@@ -2,10 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors } from '@/constants/theme';
-
-const INACTIVE = '#686D66';
-const BAR_BACKGROUND = 'rgba(255, 253, 247, 0.97)';
+const DARK_OLIVE = '#41482C';
+const DARK_OLIVE_SHADOW = '#2F351F';
+const INACTIVE = '#666B63';
+const BAR_BACKGROUND = 'rgba(255, 253, 247, 0.975)';
 
 const tabItems = {
   index: {
@@ -60,7 +60,7 @@ function NeyrloTabBar({ descriptors, navigation, state }: TabBarProps) {
           const options = descriptors[route.key]?.options;
           const label = config?.label ?? options?.title ?? route.name;
           const iconName = (focused ? config?.activeIcon : config?.inactiveIcon) ?? 'ellipse-outline';
-          const color = focused && !isAdd ? colors.primary : INACTIVE;
+          const color = focused && !isAdd ? DARK_OLIVE : INACTIVE;
 
           const onPress = () => {
             const event = navigation.emit({
@@ -129,21 +129,21 @@ const styles = StyleSheet.create({
   tabBar: {
     alignItems: 'flex-start',
     backgroundColor: BAR_BACKGROUND,
-    borderColor: 'rgba(64, 80, 48, 0.10)',
+    borderColor: 'rgba(65, 72, 44, 0.10)',
     borderTopLeftRadius: 34,
     borderTopRightRadius: 34,
     borderWidth: 1,
     borderBottomWidth: 0,
-    elevation: 16,
+    elevation: 14,
     flexDirection: 'row',
     height: Platform.OS === 'ios' ? 91 : 84,
     justifyContent: 'space-between',
     paddingBottom: Platform.OS === 'ios' ? 18 : 12,
     paddingHorizontal: 8,
     paddingTop: 14,
-    shadowColor: '#1F261B',
+    shadowColor: DARK_OLIVE_SHADOW,
     shadowOffset: { height: -7, width: 0 },
-    shadowOpacity: 0.075,
+    shadowOpacity: 0.07,
     shadowRadius: 20,
   },
   tabButton: {
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
   },
   addCircle: {
     alignItems: 'center',
-    backgroundColor: colors.primary,
+    backgroundColor: DARK_OLIVE,
     borderColor: 'rgba(255, 253, 247, 0.98)',
     borderRadius: 999,
     borderWidth: 3,
@@ -174,9 +174,9 @@ const styles = StyleSheet.create({
     height: 56,
     justifyContent: 'center',
     marginBottom: 2,
-    shadowColor: '#1F261B',
+    shadowColor: DARK_OLIVE_SHADOW,
     shadowOffset: { height: 6, width: 0 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.22,
     shadowRadius: 12,
     width: 56,
   },
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
     marginTop: -1,
   },
   activeTabLabel: {
-    color: colors.primary,
+    color: DARK_OLIVE,
     fontWeight: '800',
   },
 });
