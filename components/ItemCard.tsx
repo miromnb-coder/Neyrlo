@@ -10,10 +10,12 @@ type ItemCardProps = {
 };
 
 export function ItemCard({ item, onPress }: ItemCardProps) {
+  const locationText = item.locationLabel ?? `${item.distanceKm.toFixed(1).replace('.', ',')} km`;
+
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${item.title}, ${item.distanceKm.toFixed(1)} kilometriä, ${item.availability}`}
+      accessibilityLabel={`${item.title}, ${locationText}, ${item.availability}`}
       onPress={() => onPress?.(item)}
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
     >
@@ -33,7 +35,7 @@ export function ItemCard({ item, onPress }: ItemCardProps) {
         <View style={styles.metaRow}>
           <View style={styles.metaItem}>
             <Ionicons color={colors.textMuted} name="location-outline" size={11} />
-            <Text allowFontScaling={false} style={styles.metaText}>{item.distanceKm.toFixed(1).replace('.', ',')} km</Text>
+            <Text allowFontScaling={false} numberOfLines={1} style={styles.metaText}>{locationText}</Text>
           </View>
 
           <View style={styles.metaItem}>
