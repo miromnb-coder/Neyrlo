@@ -243,8 +243,6 @@ export default function AddItemScreen() {
 
       setDraftListingId(savedListing.id);
 
-      let uploadedCount = 0;
-
       if (selectedImages.length > 0) {
         if (!session?.user.id) {
           throw new Error('Kirjaudu sisään ennen kuvien lataamista.');
@@ -257,16 +255,11 @@ export default function AddItemScreen() {
           userId: session.user.id,
         });
 
-        uploadedCount = uploaded.length;
         setUploadedImages((currentImages) => [...currentImages, ...uploaded]);
         setSelectedImages([]);
       }
 
-      setFeedback(
-        uploadedCount > 0
-          ? `Luonnos tallennettu ja ${uploadedCount} kuva${uploadedCount === 1 ? '' : 'a'} ladattu. Ilmoitusta ei julkaistu vielä.`
-          : 'Luonnos tallennettu Supabaseen. Ilmoitusta ei julkaistu vielä.',
-      );
+      router.push({ pathname: '/listings/review', params: { listingId: savedListing.id } });
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : 'Luonnoksen tallennus ei onnistunut.');
     } finally {
