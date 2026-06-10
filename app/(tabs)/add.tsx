@@ -1,7 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import * as Location from 'expo-location';
 import { useState } from 'react';
 import {
+  ActionSheetIOS,
+  ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -29,6 +33,13 @@ type IntentOption = {
   label: ListingIntent;
 };
 
+type SelectedLocation = {
+  label: string;
+  latitude?: number;
+  longitude?: number;
+  source: 'current' | 'later';
+};
+
 const intentOptions: IntentOption[] = [
   { icon: 'leaf-outline', label: 'Lainaa' },
   { icon: 'briefcase-outline', label: 'Vuokraa' },
@@ -37,7 +48,6 @@ const intentOptions: IntentOption[] = [
 ];
 
 const categories = ['Työkalut', 'Ulkoilu', 'Matkustus', 'Elektroniikka', 'Koti'];
-const locations = ['Nykyinen sijainti', 'Koti lähellä', 'Keskusta', 'Valitse myöhemmin'];
 
 export default function AddItemScreen() {
   const router = useRouter();
@@ -46,20 +56,99 @@ export default function AddItemScreen() {
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [categoryIndex, setCategoryIndex] = useState(-1);
-  const [locationIndex, setLocationIndex] = useState(-1);
+  const [selectedLocation, setSelectedLocation] = useState<SelectedLocation | null>(null);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
   const selectedCategory = categoryIndex >= 0 ? categories[categoryIndex] : 'Valitse kategoria';
-  const selectedLocation = locationIndex >= 0 ? locations[locationIndex] : 'Valitse sijainti';
+  const locationLabel = isGettingLocation ? 'Haetaan sijaintia...' : selectedLocation?.label ?? 'Valitse sijainti';
 
   const cycleCategory = () => {
     setFeedback(null);
     setCategoryIndex((current) => (current + 1) % categories.length);
   };
 
-  const cycleLocation = () => {
+  const chooseLocationLater = () => {
+    setSelectedLocation({ label: 'Valitaan myöhemmin', source: 'later' });
+    setFeedback('Sijainnin voi lisätä myöhemmin ennen ilmoituksen julkaisua.');
+  };
+
+  const useCurrentLocation = async () => {
     setFeedback(null);
-    setLocationIndex((current) => (current + 1) % locations.length);
+    setIsGettingLocation(true);
+
+    try {
+      const permission = await Location.requestForegroundPermissionsAsync();
+
+      if (permission.status !== 'granted') {
+        setFeedback('Sijaintilupaa ei annettu. Voit valita sijainnin myöhemmin.');
+        return;
+      }
+
+      const currentLocation = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      let label = 'Nykyinen sijainti valittu';
+
+      try {
+        const places = await Location.reverseGeocodeAsync({
+          latitude: currentLocation.coords.latitude,
+          longitude: currentLocation.coords.longitude,
+        });
+
+        label = formatLocationLabel(places[0]);
+      } catch {
+        label = 'Nykyinen sijainti valittu';
+      }
+
+      setSelectedLocation({
+        label,
+        latitude: currentLocation.coords.latitude,
+        longitude: currentLocation.coords.longitude,
+        source: 'current',
+      });
+      setFeedback('Sijainti valittu. Neyrlo näyttää muille vain suurpiirteisen sijainnin.');
+    } catch {
+      setFeedback('Sijainnin hakeminen ei onnistunut. Yritä uudelleen tai valitse sijainti myöhemmin.');
+    } finally {
+      setIsGettingLocation(false);
+    }
+  };
+
+  const openLocationMenu = () => {
+    if (isGettingLocation) {
+      return;
+    }
+
+    const message = 'Näytämme muille vain suurpiirteisen sijainnin. Tarkka noutopaikka sovitaan myöhemmin viesteissä.';
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          cancelButtonIndex: 2,
+          message,
+          options: ['Käytä nykyistä sijaintia', 'Valitse myöhemmin', 'Peruuta'],
+          title: 'Valitse sijainti',
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 0) {
+            void useCurrentLocation();
+          }
+
+          if (buttonIndex === 1) {
+            chooseLocationLater();
+          }
+        },
+      );
+      return;
+    }
+
+    Alert.alert('Valitse sijainti', message, [
+      { onPress: () => void useCurrentLocation(), text: 'Käytä nykyistä sijaintia' },
+      { onPress: chooseLocationLater, text: 'Valitse myöhemmin' },
+      { style: 'cancel', text: 'Peruuta' },
+    ]);
   };
 
   const handleImagePress = () => {
@@ -179,7 +268,13 @@ export default function AddItemScreen() {
               value={price}
             />
 
-            <FormActionRow icon="location-outline" label="Sijainti" onPress={cycleLocation} value={selectedLocation} />
+            <FormActionRow
+              icon="location-outline"
+              label="Sijainti"
+              loading={isGettingLocation}
+              onPress={openLocationMenu}
+              value={locationLabel}
+            />
           </View>
 
           {!!feedback && (
@@ -196,6 +291,21 @@ export default function AddItemScreen() {
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
+}
+
+function formatLocationLabel(place?: Location.LocationGeocodedAddress) {
+  if (!place) {
+    return 'Nykyinen sijainti valittu';
+  }
+
+  const area = place.district ?? place.subregion;
+  const city = place.city ?? place.region;
+
+  if (area && city && area !== city) {
+    return `${area}, ${city}`;
+  }
+
+  return city ?? place.region ?? 'Nykyinen sijainti valittu';
 }
 
 type FormInputRowProps = {
@@ -233,19 +343,24 @@ function FormInputRow({ icon, label, multiline, onChangeText, optionalText, plac
 type FormActionRowProps = {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
+  loading?: boolean;
   onPress: () => void;
   value: string;
 };
 
-function FormActionRow({ icon, label, onPress, value }: FormActionRowProps) {
+function FormActionRow({ icon, label, loading, onPress, value }: FormActionRowProps) {
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.formRow, pressed && styles.pressed]}>
+    <Pressable disabled={loading} onPress={onPress} style={({ pressed }) => [styles.formRow, pressed && styles.pressed]}>
       <Ionicons color={ADD_GREEN_DARK} name={icon} size={23} />
       <View style={styles.formTextWrap}>
         <Text allowFontScaling={false} style={styles.formLabel}>{label}</Text>
         <Text allowFontScaling={false} numberOfLines={1} style={styles.formValue}>{value}</Text>
       </View>
-      <Ionicons color={ADD_GREEN_DARK} name="chevron-forward" size={22} />
+      {loading ? (
+        <ActivityIndicator color={ADD_GREEN_DARK} size="small" />
+      ) : (
+        <Ionicons color={ADD_GREEN_DARK} name="chevron-forward" size={22} />
+      )}
     </Pressable>
   );
 }
@@ -335,14 +450,14 @@ const styles = StyleSheet.create({
   photoTitle: {
     color: '#1F2A1D',
     fontSize: 20,
-    fontWeight: '760',
+    fontWeight: '700',
     letterSpacing: -0.2,
     marginTop: 16,
   },
   photoSubtitle: {
     color: MUTED_TEXT,
     fontSize: 15,
-    fontWeight: '560',
+    fontWeight: '500',
     marginTop: 7,
   },
   leafGhost: {
@@ -387,25 +502,25 @@ const styles = StyleSheet.create({
   formLabel: {
     color: BODY_TEXT,
     fontSize: 16.4,
-    fontWeight: '720',
+    fontWeight: '700',
     letterSpacing: -0.12,
     lineHeight: 21,
   },
   formValue: {
     color: MUTED_TEXT,
     fontSize: 14.8,
-    fontWeight: '560',
+    fontWeight: '500',
     marginTop: 4,
   },
   optionalText: {
     color: MUTED_TEXT,
     fontSize: 13.3,
-    fontWeight: '560',
+    fontWeight: '500',
   },
   input: {
     color: BODY_TEXT,
     fontSize: 14.8,
-    fontWeight: '560',
+    fontWeight: '500',
     marginTop: 3,
     padding: 0,
   },
@@ -466,7 +581,7 @@ const styles = StyleSheet.create({
   intentChipText: {
     color: ADD_GREEN_DARK,
     fontSize: 12.8,
-    fontWeight: '650',
+    fontWeight: '600',
   },
   intentChipTextActive: {
     color: '#FFFFFF',
@@ -505,7 +620,7 @@ const styles = StyleSheet.create({
   continueText: {
     color: '#FFFFFF',
     fontSize: 19,
-    fontWeight: '760',
+    fontWeight: '700',
     letterSpacing: -0.15,
   },
   pressed: {
