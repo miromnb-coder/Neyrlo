@@ -47,6 +47,12 @@ type TabBarProps = {
 };
 
 function NeyrloTabBar({ descriptors, navigation, state }: TabBarProps) {
+  const activeRouteName = state.routes[state.index]?.name;
+
+  if (activeRouteName === 'add') {
+    return null;
+  }
+
   return (
     <View style={styles.tabBar}>
       {state.routes.map((route, index) => {
