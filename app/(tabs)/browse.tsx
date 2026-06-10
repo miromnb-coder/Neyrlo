@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
@@ -35,6 +35,7 @@ const productGap = 10;
 const categoryGap = 14;
 
 export default function BrowseScreen() {
+  const router = useRouter();
   const { width } = useWindowDimensions();
   const [selectedFilter, setSelectedFilter] = useState<(typeof filters)[number]>('Kaikki');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -44,6 +45,10 @@ export default function BrowseScreen() {
 
   const categoryCardWidth = (width - horizontalPadding * 2 - categoryGap * 2) / 3;
   const productCardWidth = (width - horizontalPadding * 2 - productGap) / 2;
+
+  const openListing = (item: NearbyItem) => {
+    router.push({ pathname: '/listings/[id]', params: { id: item.id } });
+  };
 
   const loadListings = useCallback(async () => {
     setLoading(true);
@@ -156,7 +161,11 @@ export default function BrowseScreen() {
         ) : (
           <View style={styles.grid}>
             {visibleItems.map((item) => (
-              <Pressable key={item.id} style={({ pressed }) => [styles.productCard, { width: productCardWidth }, pressed && styles.cardPressed]}>
+              <Pressable
+                key={item.id}
+                onPress={() => openListing(item)}
+                style={({ pressed }) => [styles.productCard, { width: productCardWidth }, pressed && styles.cardPressed]}
+              >
                 <View style={styles.productImageWrap}>
                   <Image source={{ uri: item.imageUrl }} style={styles.productImage} />
                   <Ionicons color="#59625E" name="heart-outline" size={21} style={styles.heartIcon} />
