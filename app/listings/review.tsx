@@ -4,11 +4,14 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -22,35 +25,44 @@ import {
 } from '@/lib/listings';
 
 const BACKGROUND = '#FFFDF7';
-const GREEN = '#55633F';
-const GREEN_DARK = '#3F4E2F';
+const DARK_OLIVE = '#41482C';
+const DARK_OLIVE_DARK = '#30361F';
 const TEXT = '#20251F';
-const MUTED = '#77736B';
-const BORDER = 'rgba(64, 80, 48, 0.13)';
-const CARD = 'rgba(255, 253, 247, 0.92)';
+const MUTED = '#686D66';
+const BORDER = 'rgba(229, 218, 206, 0.82)';
+const CARD = 'rgba(255, 253, 249, 0.96)';
+const SOFT_GREEN = '#EEF2E6';
+const SOFT_BEIGE = '#F4E8D7';
 
 const categoryLabels: Record<string, string> = {
   electronics: 'Elektroniikka',
   events: 'Juhlat',
   home: 'Koti',
   kids: 'Lapset',
-  outdoors: 'Ulkoilu',
-  sports: 'Urheilu',
-  tools: 'Työkalut',
+  outdoors: 'Retkeily ja ulkoilu',
+  sports: 'Urheilu ja pyörät',
+  tools: 'Työkalut ja remontti',
   travel: 'Matkustus',
 };
 
 export default function ReviewListingScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
   const params = useLocalSearchParams<{ listingId?: string }>();
   const listingId = Array.isArray(params.listingId) ? params.listingId[0] : params.listingId;
   const [listing, setListing] = useState<ListingWithRelations | null>(null);
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
 
+  const heroWidth = width - 48;
   const missingFields = useMemo(() => (listing ? getPublishMissingFields(listing) : []), [listing]);
   const canPublish = !!listing && missingFields.length === 0 && !publishing;
+  const images = listing?.image_urls ?? [];
+  const categoryLabel = listing?.category_id ? categoryLabels[listing.category_id] ?? 'Muu' : 'Ei valittu';
+  const locationLabel = listing?.location_label ?? 'Ei valittu';
+  const statusLabel = listing?.status === 'active' ? 'Julkaistu' : 'Luonnos';
 
   const loadListing = useCallback(async () => {
     if (!listingId) {
@@ -98,130 +110,190 @@ export default function ReviewListingScreen() {
     }
   };
 
-  const primaryImage = listing?.image_urls[0];
-  const categoryLabel = listing?.category_id ? categoryLabels[listing.category_id] ?? 'Muu' : 'Ei valittu';
-  const locationLabel = listing?.location_label ?? 'Ei valittu';
+  const handleImageScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const nextIndex = Math.round(event.nativeEvent.contentOffset.x / heroWidth);
+    setActiveImageIndex(nextIndex);
+  };
+
+  const openEdit = () => {
+    if (!listing) return;
+    router.push({ pathname: '/listings/edit/[id]', params: { id: listing.id } });
+  };
 
   return (
     <SafeAreaView edges={['top', 'bottom']} style={styles.screen}>
-      <View style={styles.topBar}>
-        <Pressable
-          accessibilityLabel="Takaisin"
-          hitSlop={12}
-          onPress={() => router.back()}
-          style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}
-        >
-          <Ionicons color={TEXT} name="chevron-back" size={27} />
+      <View style={styles.header}>
+        <Pressable accessibilityLabel="Takaisin" hitSlop={12} onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
+          <Ionicons color={TEXT} name="arrow-back" size={24} />
         </Pressable>
+        <Text allowFontScaling={false} style={styles.brand}>NEYRLO</Text>
         <Text allowFontScaling={false} style={styles.pageTitle}>Tarkista ilmoitus</Text>
-        <View style={styles.headerSpacer} />
       </View>
 
       {loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={GREEN} size="small" />
+          <ActivityIndicator color={DARK_OLIVE} size="small" />
           <Text allowFontScaling={false} style={styles.loadingText}>Ladataan luonnosta...</Text>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          {primaryImage ? (
-            <Image source={{ uri: primaryImage }} style={styles.heroImage} />
-          ) : (
-            <View style={styles.emptyImage}>
-              <Ionicons color={GREEN_DARK} name="image-outline" size={42} />
-              <Text allowFontScaling={false} style={styles.emptyImageText}>Ei kuvia vielä</Text>
+        <>
+          <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+            <View style={styles.heroWrap}>
+              {images.length > 0 ? (
+                <ScrollView
+                  horizontal
+                  onMomentumScrollEnd={handleImageScroll}
+                  pagingEnabled
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.heroScroller}
+                >
+                  {images.map((uri) => (
+                    <Image key={uri} source={{ uri }} style={[styles.heroImage, { width: heroWidth }]} />
+                  ))}
+                </ScrollView>
+              ) : (
+                <View style={[styles.emptyImage, { width: heroWidth }]}>
+                  <Ionicons color={DARK_OLIVE} name="image-outline" size={42} />
+                  <Text allowFontScaling={false} style={styles.emptyImageText}>Ei kuvia vielä</Text>
+                </View>
+              )}
+
+              {images.length > 0 && (
+                <View style={styles.imageCountBadge}>
+                  <Text allowFontScaling={false} style={styles.imageCountText}>{activeImageIndex + 1}/{images.length}</Text>
+                </View>
+              )}
             </View>
-          )}
+
+            {images.length > 1 && (
+              <View style={styles.dotsRow}>
+                {images.map((uri, index) => (
+                  <View key={`${uri}-${index}`} style={[styles.dot, index === activeImageIndex && styles.activeDot]} />
+                ))}
+              </View>
+            )}
+
+            {!!listing && (
+              <View style={styles.summaryCard}>
+                <View style={styles.pillRow}>
+                  <View style={[styles.statusPill, statusLabel === 'Luonnos' && styles.draftPill]}>
+                    <Text allowFontScaling={false} style={[styles.statusPillText, statusLabel === 'Luonnos' && styles.draftPillText]}>{statusLabel}</Text>
+                  </View>
+                  <View style={styles.typePill}>
+                    <Text allowFontScaling={false} style={styles.typePillText}>{listingTypeLabel(listing.listing_type)}</Text>
+                  </View>
+                </View>
+
+                <Text allowFontScaling={false} numberOfLines={2} style={styles.listingTitle}>{listing.title || 'Nimetön ilmoitus'}</Text>
+
+                <View style={styles.ownerRow}>
+                  <View style={styles.ownerAvatar}>
+                    <Text allowFontScaling={false} style={styles.ownerInitial}>{initialForName(listing.owner_name)}</Text>
+                  </View>
+                  <Text allowFontScaling={false} numberOfLines={1} style={styles.ownerName}>{shortName(listing.owner_name)}</Text>
+                </View>
+
+                <View style={styles.infoGrid}>
+                  <InfoCard icon="pricetag-outline" label="Kategoria" subLabel="" value={categoryLabel} />
+                  <InfoCard icon="location-outline" label="Sijainti" subLabel="0,6 km päässä" value={locationLabel} />
+                  <InfoCard icon="cash-outline" label="Korvaus" subLabel={priceSubLabel(listing.price_amount)} value={formatPrice(listing.price_amount, listing.listing_type)} />
+                  <InfoCard icon="images-outline" label="Kuvat" subLabel="Lisättynä" value={`${images.length} ${images.length === 1 ? 'kuva' : 'kuvaa'}`} />
+                </View>
+
+                <View style={styles.descriptionCard}>
+                  <Text allowFontScaling={false} style={styles.descriptionTitle}>Kuvaus</Text>
+                  <Text allowFontScaling={false} style={styles.descriptionText}>{listing.description || 'Kuvaus puuttuu.'}</Text>
+                </View>
+
+                {missingFields.length > 0 && (
+                  <View style={styles.warningCard}>
+                    <Ionicons color={DARK_OLIVE} name="alert-circle-outline" size={20} />
+                    <Text allowFontScaling={false} style={styles.warningText}>Täydennä ennen julkaisua: {missingFields.join(', ')}.</Text>
+                  </View>
+                )}
+
+                {!!feedback && (
+                  <View style={styles.feedbackCard}>
+                    <Ionicons color={DARK_OLIVE} name="information-circle-outline" size={20} />
+                    <Text allowFontScaling={false} style={styles.feedbackText}>{feedback}</Text>
+                  </View>
+                )}
+              </View>
+            )}
+          </ScrollView>
 
           {!!listing && (
-            <>
-              <View style={styles.titleCard}>
-                <View style={styles.statusRow}>
-                  <Text allowFontScaling={false} style={styles.statusText}>
-                    {listing.status === 'active' ? 'Julkaistu' : 'Luonnos'}
-                  </Text>
-                  <Text allowFontScaling={false} style={styles.statusDot}>•</Text>
-                  <Text allowFontScaling={false} style={styles.statusText}>{listingTypeLabel(listing.listing_type)}</Text>
-                </View>
-                <Text allowFontScaling={false} style={styles.listingTitle}>{listing.title}</Text>
-                <Text allowFontScaling={false} style={styles.ownerText}>{listing.owner_name}</Text>
-              </View>
-
-              <View style={styles.infoGrid}>
-                <InfoCard icon="grid-outline" label="Kategoria" value={categoryLabel} />
-                <InfoCard icon="location-outline" label="Sijainti" value={locationLabel} />
-                <InfoCard icon="cash-outline" label="Korvaus" value={formatPrice(listing.price_amount)} />
-                <InfoCard icon="images-outline" label="Kuvat" value={`${listing.image_urls.length}/10`} />
-              </View>
-
-              <View style={styles.descriptionCard}>
-                <Text allowFontScaling={false} style={styles.sectionTitle}>Kuvaus</Text>
-                <Text allowFontScaling={false} style={styles.descriptionText}>
-                  {listing.description || 'Kuvaus puuttuu.'}
-                </Text>
-              </View>
-
-              {missingFields.length > 0 && (
-                <View style={styles.warningCard}>
-                  <Ionicons color={GREEN_DARK} name="alert-circle-outline" size={21} />
-                  <Text allowFontScaling={false} style={styles.warningText}>
-                    Täydennä ennen julkaisua: {missingFields.join(', ')}.
-                  </Text>
-                </View>
-              )}
-
-              {!!feedback && (
-                <View style={styles.feedbackCard}>
-                  <Ionicons color={GREEN_DARK} name="information-circle-outline" size={20} />
-                  <Text allowFontScaling={false} style={styles.feedbackText}>{feedback}</Text>
-                </View>
-              )}
+            <View style={styles.actionBar}>
+              <Pressable onPress={openEdit} style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}>
+                <Ionicons color={DARK_OLIVE} name="pencil-outline" size={22} />
+                <Text allowFontScaling={false} style={styles.secondaryButtonText}>Muokkaa</Text>
+              </Pressable>
 
               {listing.status === 'active' ? (
                 <Pressable onPress={() => router.replace('/(tabs)/browse')} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}>
-                  <Text allowFontScaling={false} style={styles.primaryButtonText}>Katso selaa-näkymässä</Text>
+                  <Ionicons color="#FFFFFF" name="open-outline" size={22} />
+                  <Text allowFontScaling={false} style={styles.primaryButtonText}>Avaa</Text>
                 </Pressable>
               ) : (
-                <Pressable
-                  disabled={!canPublish}
-                  onPress={handlePublish}
-                  style={({ pressed }) => [
-                    styles.primaryButton,
-                    !canPublish && styles.disabledButton,
-                    pressed && styles.pressed,
-                  ]}
-                >
+                <Pressable disabled={!canPublish} onPress={handlePublish} style={({ pressed }) => [styles.primaryButton, !canPublish && styles.disabledButton, pressed && styles.pressed]}>
                   {publishing ? (
                     <ActivityIndicator color="#FFFFFF" size="small" />
                   ) : (
-                    <Text allowFontScaling={false} style={styles.primaryButtonText}>Julkaise ilmoitus</Text>
+                    <>
+                      <Ionicons color="#FFFFFF" name="share-outline" size={23} />
+                      <Text allowFontScaling={false} style={styles.primaryButtonText}>Julkaise</Text>
+                    </>
                   )}
                 </Pressable>
               )}
-            </>
+            </View>
           )}
-        </ScrollView>
+        </>
       )}
     </SafeAreaView>
   );
 }
 
-function InfoCard({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string }) {
+function InfoCard({ icon, label, subLabel, value }: { icon: keyof typeof Ionicons.glyphMap; label: string; subLabel?: string; value: string }) {
   return (
     <View style={styles.infoCard}>
-      <Ionicons color={GREEN_DARK} name={icon} size={22} />
-      <Text allowFontScaling={false} style={styles.infoLabel}>{label}</Text>
-      <Text allowFontScaling={false} numberOfLines={1} style={styles.infoValue}>{value}</Text>
+      <View style={styles.infoIconCircle}>
+        <Ionicons color={DARK_OLIVE} name={icon} size={23} />
+      </View>
+      <View style={styles.infoTextWrap}>
+        <Text allowFontScaling={false} style={styles.infoLabel}>{label}</Text>
+        <Text allowFontScaling={false} numberOfLines={1} style={styles.infoValue}>{value}</Text>
+        {!!subLabel && <Text allowFontScaling={false} numberOfLines={1} style={styles.infoSubValue}>{subLabel}</Text>}
+      </View>
     </View>
   );
 }
 
-function formatPrice(price: number | null) {
-  if (price === null || price === undefined) {
-    return 'Ei korvausta';
+function formatPrice(price: number | null, type: ListingWithRelations['listing_type']) {
+  if (price === null || price === undefined || price === 0) {
+    return type === 'rent' ? 'Sopimuksen mukaan' : 'Ei korvausta';
+  }
+
+  if (type === 'rent') {
+    return `Päiväkorvaus ${Math.round(price)} €`;
   }
 
   return `${price.toFixed(2).replace('.', ',')} €`;
+}
+
+function priceSubLabel(price: number | null) {
+  return price === null || price === undefined || price === 0 ? 'Vapaa lainaus' : 'Tai sopimuksen mukaan';
+}
+
+function initialForName(name: string) {
+  const trimmed = name.trim();
+  return trimmed.length > 0 ? trimmed.charAt(0).toUpperCase() : 'N';
+}
+
+function shortName(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length <= 1) return name || 'Neyrlo-käyttäjä';
+  return `${parts[0]} ${parts[1].charAt(0)}.`;
 }
 
 const serifFont = Platform.select({ ios: 'Georgia', android: 'serif', default: 'serif' });
@@ -231,36 +303,44 @@ const styles = StyleSheet.create({
     backgroundColor: BACKGROUND,
     flex: 1,
   },
-  topBar: {
+  header: {
     alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    minHeight: 124,
     paddingHorizontal: 24,
-    paddingTop: 8,
+    paddingTop: 6,
   },
-  closeButton: {
+  backButton: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 253, 247, 0.88)',
+    backgroundColor: 'rgba(255, 253, 247, 0.95)',
     borderColor: BORDER,
-    borderRadius: 14,
+    borderRadius: 999,
     borderWidth: 1,
-    height: 45,
+    height: 56,
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { height: 6, width: 0 },
-    shadowOpacity: 0.045,
-    shadowRadius: 12,
-    width: 45,
+    left: 24,
+    position: 'absolute',
+    shadowColor: '#1F261B',
+    shadowOffset: { height: 7, width: 0 },
+    shadowOpacity: 0.055,
+    shadowRadius: 14,
+    top: 38,
+    width: 56,
+  },
+  brand: {
+    color: DARK_OLIVE,
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 4.2,
+    textAlign: 'center',
   },
   pageTitle: {
     color: TEXT,
     fontFamily: serifFont,
-    fontSize: 28,
-    fontWeight: Platform.OS === 'ios' ? '500' : '400',
-    letterSpacing: -0.35,
-  },
-  headerSpacer: {
-    width: 45,
+    fontSize: 32,
+    fontWeight: Platform.OS === 'ios' ? '500' : '700',
+    letterSpacing: -0.65,
+    lineHeight: 38,
+    marginTop: 33,
   },
   loadingWrap: {
     alignItems: 'center',
@@ -271,172 +351,319 @@ const styles = StyleSheet.create({
   loadingText: {
     color: MUTED,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '650',
   },
   content: {
-    paddingBottom: 30,
+    paddingBottom: 128,
     paddingHorizontal: 24,
-    paddingTop: 22,
+  },
+  heroWrap: {
+    borderRadius: 24,
+    height: 246,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  heroScroller: {
+    borderRadius: 24,
   },
   heroImage: {
-    backgroundColor: '#F8F2EA',
+    backgroundColor: '#F4EDE5',
     borderRadius: 24,
-    height: 236,
-    width: '100%',
+    height: 246,
+    resizeMode: 'cover',
   },
   emptyImage: {
     alignItems: 'center',
-    backgroundColor: '#F8F2EA',
-    borderColor: 'rgba(85, 99, 63, 0.22)',
+    backgroundColor: '#F4EDE5',
+    borderColor: 'rgba(65, 72, 44, 0.20)',
     borderRadius: 24,
     borderStyle: 'dashed',
     borderWidth: 1.2,
-    height: 220,
+    height: 246,
     justifyContent: 'center',
   },
   emptyImageText: {
-    color: GREEN_DARK,
+    color: DARK_OLIVE,
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '750',
     marginTop: 8,
   },
-  titleCard: {
-    backgroundColor: CARD,
-    borderColor: BORDER,
-    borderRadius: 20,
-    borderWidth: 1,
-    marginTop: 16,
-    padding: 18,
+  imageCountBadge: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(32, 37, 31, 0.64)',
+    borderRadius: 999,
+    bottom: 18,
+    height: 34,
+    justifyContent: 'center',
+    left: '50%',
+    marginLeft: -31,
+    position: 'absolute',
+    width: 62,
   },
-  statusRow: {
+  imageCountText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '750',
+  },
+  dotsRow: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 6,
-    marginBottom: 8,
+    gap: 9,
+    justifyContent: 'center',
+    marginBottom: 14,
+    marginTop: 12,
   },
-  statusText: {
-    color: GREEN_DARK,
-    fontSize: 12.5,
-    fontWeight: '800',
+  dot: {
+    backgroundColor: 'rgba(104, 109, 102, 0.20)',
+    borderRadius: 999,
+    height: 10,
+    width: 10,
   },
-  statusDot: {
-    color: GREEN_DARK,
-    fontSize: 12,
-    fontWeight: '900',
+  activeDot: {
+    backgroundColor: DARK_OLIVE,
+  },
+  summaryCard: {
+    backgroundColor: CARD,
+    borderColor: BORDER,
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 20,
+    shadowColor: '#1F261B',
+    shadowOffset: { height: 8, width: 0 },
+    shadowOpacity: 0.04,
+    shadowRadius: 18,
+  },
+  pillRow: {
+    flexDirection: 'row',
+    gap: 9,
+    marginBottom: 13,
+  },
+  statusPill: {
+    backgroundColor: SOFT_GREEN,
+    borderRadius: 10,
+    paddingHorizontal: 13,
+    paddingVertical: 8,
+  },
+  draftPill: {
+    backgroundColor: SOFT_BEIGE,
+  },
+  statusPillText: {
+    color: DARK_OLIVE,
+    fontSize: 12.8,
+    fontWeight: '750',
+  },
+  draftPillText: {
+    color: '#7B5A2B',
+  },
+  typePill: {
+    backgroundColor: SOFT_GREEN,
+    borderRadius: 10,
+    paddingHorizontal: 13,
+    paddingVertical: 8,
+  },
+  typePillText: {
+    color: DARK_OLIVE,
+    fontSize: 12.8,
+    fontWeight: '750',
   },
   listingTitle: {
     color: TEXT,
-    fontSize: 25,
-    fontWeight: '900',
-    letterSpacing: -0.4,
+    fontFamily: serifFont,
+    fontSize: 31,
+    fontWeight: Platform.OS === 'ios' ? '500' : '700',
+    letterSpacing: -0.62,
+    lineHeight: 37,
   },
-  ownerText: {
-    color: MUTED,
-    fontSize: 14,
-    fontWeight: '600',
-    marginTop: 5,
+  ownerRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+  },
+  ownerAvatar: {
+    alignItems: 'center',
+    backgroundColor: '#E9E0D3',
+    borderColor: 'rgba(65, 72, 44, 0.10)',
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 54,
+    justifyContent: 'center',
+    width: 54,
+  },
+  ownerInitial: {
+    color: DARK_OLIVE,
+    fontSize: 20,
+    fontWeight: '900',
+  },
+  ownerName: {
+    color: TEXT,
+    flex: 1,
+    fontSize: 17,
+    fontWeight: '650',
   },
   infoGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
-    marginTop: 12,
+    gap: 12,
+    marginTop: 22,
   },
   infoCard: {
-    backgroundColor: CARD,
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 253, 247, 0.74)',
     borderColor: BORDER,
     borderRadius: 17,
     borderWidth: 1,
-    flexGrow: 1,
-    minHeight: 88,
-    padding: 14,
-    width: '47%',
+    flexDirection: 'row',
+    gap: 13,
+    minHeight: 108,
+    padding: 15,
+    width: '48%',
+  },
+  infoIconCircle: {
+    alignItems: 'center',
+    backgroundColor: SOFT_GREEN,
+    borderRadius: 999,
+    height: 54,
+    justifyContent: 'center',
+    width: 54,
+  },
+  infoTextWrap: {
+    flex: 1,
+    minWidth: 0,
   },
   infoLabel: {
-    color: TEXT,
-    fontSize: 13.5,
-    fontWeight: '800',
-    marginTop: 8,
+    color: MUTED,
+    fontSize: 13,
+    fontWeight: '650',
   },
   infoValue: {
+    color: TEXT,
+    fontSize: 15.5,
+    fontWeight: '800',
+    lineHeight: 20,
+    marginTop: 2,
+  },
+  infoSubValue: {
     color: MUTED,
-    fontSize: 13.2,
+    fontSize: 12.5,
     fontWeight: '600',
-    marginTop: 3,
+    marginTop: 5,
   },
   descriptionCard: {
-    backgroundColor: CARD,
+    backgroundColor: 'rgba(255, 253, 247, 0.74)',
     borderColor: BORDER,
-    borderRadius: 18,
+    borderRadius: 17,
     borderWidth: 1,
-    marginTop: 12,
+    marginTop: 16,
     padding: 18,
   },
-  sectionTitle: {
+  descriptionTitle: {
     color: TEXT,
     fontSize: 16,
-    fontWeight: '900',
-    marginBottom: 8,
+    fontWeight: '850',
+    marginBottom: 10,
   },
   descriptionText: {
-    color: MUTED,
-    fontSize: 14.5,
-    fontWeight: '600',
-    lineHeight: 21,
+    color: '#3C4039',
+    fontSize: 15.5,
+    fontWeight: '500',
+    lineHeight: 23,
   },
   warningCard: {
     alignItems: 'flex-start',
-    backgroundColor: 'rgba(85, 99, 63, 0.08)',
-    borderColor: 'rgba(85, 99, 63, 0.18)',
-    borderRadius: 14,
+    backgroundColor: 'rgba(244, 232, 215, 0.72)',
+    borderColor: 'rgba(123, 90, 43, 0.14)',
+    borderRadius: 15,
     borderWidth: 1,
     flexDirection: 'row',
     gap: 9,
     marginTop: 14,
-    padding: 13,
+    padding: 14,
   },
   warningText: {
-    color: GREEN_DARK,
+    color: '#7B5A2B',
     flex: 1,
-    fontSize: 13.5,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '650',
     lineHeight: 19,
   },
   feedbackCard: {
     alignItems: 'flex-start',
-    backgroundColor: 'rgba(85, 99, 63, 0.08)',
-    borderColor: 'rgba(85, 99, 63, 0.18)',
-    borderRadius: 14,
+    backgroundColor: 'rgba(238, 242, 230, 0.80)',
+    borderColor: 'rgba(65, 72, 44, 0.13)',
+    borderRadius: 15,
     borderWidth: 1,
     flexDirection: 'row',
     gap: 9,
     marginTop: 14,
-    padding: 13,
+    padding: 14,
   },
   feedbackText: {
-    color: GREEN_DARK,
+    color: DARK_OLIVE,
     flex: 1,
-    fontSize: 13.5,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '650',
     lineHeight: 19,
+  },
+  actionBar: {
+    backgroundColor: 'rgba(255, 253, 247, 0.96)',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    bottom: 0,
+    flexDirection: 'row',
+    gap: 12,
+    left: 0,
+    paddingBottom: Platform.OS === 'ios' ? 23 : 16,
+    paddingHorizontal: 24,
+    paddingTop: 18,
+    position: 'absolute',
+    right: 0,
+    shadowColor: '#1F261B',
+    shadowOffset: { height: -7, width: 0 },
+    shadowOpacity: 0.06,
+    shadowRadius: 18,
+  },
+  secondaryButton: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 253, 247, 0.94)',
+    borderColor: 'rgba(65, 72, 44, 0.28)',
+    borderRadius: 15,
+    borderWidth: 1,
+    flex: 1,
+    flexDirection: 'row',
+    gap: 10,
+    height: 58,
+    justifyContent: 'center',
+  },
+  secondaryButtonText: {
+    color: DARK_OLIVE,
+    fontSize: 16.5,
+    fontWeight: '800',
   },
   primaryButton: {
     alignItems: 'center',
-    backgroundColor: GREEN,
-    borderRadius: 17,
-    height: 60,
+    backgroundColor: DARK_OLIVE,
+    borderRadius: 15,
+    flex: 1,
+    flexDirection: 'row',
+    gap: 10,
+    height: 58,
     justifyContent: 'center',
-    marginTop: 18,
-  },
-  disabledButton: {
-    opacity: 0.45,
+    shadowColor: DARK_OLIVE_DARK,
+    shadowOffset: { height: 8, width: 0 },
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
   },
   primaryButtonText: {
     color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: 16.5,
+    fontWeight: '850',
+  },
+  disabledButton: {
+    opacity: 0.48,
   },
   pressed: {
-    opacity: 0.78,
+    opacity: 0.8,
+    transform: [{ scale: 0.99 }],
   },
 });
