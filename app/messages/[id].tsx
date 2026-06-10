@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -23,6 +23,7 @@ import {
   type ConversationMessage,
 } from '@/lib/messages';
 import {
+  nextRequestActions,
   requestStatusDescription,
   requestStatusLabel,
   updateListingRequestStatus,
@@ -36,6 +37,16 @@ const TEXT = '#20251F';
 const MUTED = '#77736B';
 const BORDER = 'rgba(64, 80, 48, 0.13)';
 const CARD = 'rgba(255, 253, 247, 0.94)';
+
+const timelineSteps: { label: string; status: ListingRequestStatus }[] = [
+  { label: 'Pyyntö', status: 'pending' },
+  { label: 'Hyväksytty', status: 'accepted' },
+  { label: 'Nouto', status: 'pickup_scheduled' },
+  { label: 'Noudettu', status: 'picked_up' },
+  { label: 'Palautus', status: 'return_due' },
+  { label: 'Palautettu', status: 'returned' },
+  { label: 'Valmis', status: 'completed' },
+];
 
 export default function ConversationScreen() {
   const router = useRouter();
@@ -114,8 +125,10 @@ export default function ConversationScreen() {
 
   const isOwner = conversation?.ownerId === session?.user.id;
   const isRequester = conversation?.requesterId === session?.user.id;
+  const role = isOwner ? 'owner' : 'requester';
   const requestStatus = conversation?.requestStatus ?? null;
   const hasRequestDates = !!conversation?.requestStartDate && !!conversation?.requestEndDate;
+  const actions = useMemo(() => nextRequestActions(requestStatus, role), [requestStatus, role]);
 
   return (
     <SafeAreaView edges={['top', 'bottom']} style={styles.screen}>
@@ -163,6 +176,8 @@ export default function ConversationScreen() {
                   </View>
                   <Text allowFontScaling={false} style={styles.eventDescription}>{requestStatusDescription(requestStatus)}</Text>
 
+                  <LoanTimeline currentStatus={requestStatus} />
+
                   {hasRequestDates && (
                     <View style={styles.eventDateGrid}>
                       <View style={styles.eventDatePill}>
@@ -182,18 +197,9 @@ export default function ConversationScreen() {
                         <ActivityIndicator color={GREEN} size="small" />
                       ) : (
                         <>
-                          {isOwner && requestStatus === 'pending' && (
-                            <>
-                              <EventButton label="Hyväksy" onPress={() => void handleEventAction('accepted')} primary />
-                              <EventButton label="Hylkää" onPress={() => void handleEventAction('declined')} />
-                            </>
-                          )}
-                          {isRequester && requestStatus === 'pending' && (
-                            <EventButton label="Peru pyyntö" onPress={() => void handleEventAction('cancelled')} />
-                          )}
-                          {isOwner && requestStatus === 'accepted' && (
-                            <EventButton label="Merkitse valmiiksi" onPress={() => void handleEventAction('completed')} primary />
-                          )}
+                          {actions.map((action) => (
+                            <EventButton key={action} label={actionLabel(action)} onPress={() => void handleEventAction(action)} primary={isPrimaryAction(action)} />
+                          ))}
                           {conversation.listingId && (
                             <EventButton label="Avaa ilmoitus" onPress={() => router.push({ pathname: '/listings/[id]', params: { id: conversation.listingId } })} />
                           )}
@@ -265,12 +271,61 @@ export default function ConversationScreen() {
   );
 }
 
+function LoanTimeline({ currentStatus }: { currentStatus: ListingRequestStatus | null }) {
+  const currentIndex = currentStatus ? timelineSteps.findIndex((step) => step.status === currentStatus) : -1;
+  const isStopped = currentStatus === 'declined' || currentStatus === 'cancelled';
+
+  if (isStopped) {
+    return (
+      <View style={styles.stoppedTimelineCard}>
+        <Ionicons color="#9F2E2E" name="close-circle-outline" size={18} />
+        <Text allowFontScaling={false} style={styles.stoppedTimelineText}>{requestStatusLabel(currentStatus)}</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.timelineRow}>
+      {timelineSteps.map((step, index) => {
+        const isDone = currentIndex >= index;
+        const isCurrent = currentIndex === index;
+
+        return (
+          <View key={step.status} style={styles.timelineItem}>
+            <View style={[styles.timelineDot, isDone && styles.timelineDotDone, isCurrent && styles.timelineDotCurrent]} />
+            <Text allowFontScaling={false} numberOfLines={1} style={[styles.timelineText, isDone && styles.timelineTextDone]}>{step.label}</Text>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
 function EventButton({ label, onPress, primary }: { label: string; onPress: () => void; primary?: boolean }) {
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.eventButton, primary && styles.eventButtonPrimary, pressed && styles.pressed]}>
       <Text allowFontScaling={false} style={[styles.eventButtonText, primary && styles.eventButtonPrimaryText]}>{label}</Text>
     </Pressable>
   );
+}
+
+function actionLabel(status: ListingRequestStatus) {
+  switch (status) {
+    case 'accepted': return 'Hyväksy';
+    case 'declined': return 'Hylkää';
+    case 'cancelled': return 'Peru pyyntö';
+    case 'pickup_scheduled': return 'Nouto sovittu';
+    case 'picked_up': return 'Merkitse noudetuksi';
+    case 'return_due': return 'Palautus tulossa';
+    case 'returned': return 'Merkitse palautetuksi';
+    case 'completed': return 'Merkitse valmiiksi';
+    case 'pending':
+    default: return requestStatusLabel(status);
+  }
+}
+
+function isPrimaryAction(status: ListingRequestStatus) {
+  return status !== 'declined' && status !== 'cancelled';
 }
 
 function formatTime(value: string) {
@@ -287,269 +342,57 @@ function formatTime(value: string) {
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    backgroundColor: BACKGROUND,
-    flex: 1,
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  topBar: {
-    alignItems: 'center',
-    borderBottomColor: 'rgba(64, 80, 48, 0.08)',
-    borderBottomWidth: 1,
-    flexDirection: 'row',
-    gap: 12,
-    paddingBottom: 12,
-    paddingHorizontal: 20,
-    paddingTop: 8,
-  },
-  iconButton: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 253, 247, 0.9)',
-    borderColor: BORDER,
-    borderRadius: 14,
-    borderWidth: 1,
-    height: 44,
-    justifyContent: 'center',
-    width: 44,
-  },
-  headerTextWrap: {
-    alignItems: 'center',
-    flex: 1,
-    minWidth: 0,
-  },
-  pageTitle: {
-    color: TEXT,
-    fontSize: 17,
-    fontWeight: '900',
-    maxWidth: '100%',
-  },
-  headerSubtitle: {
-    color: MUTED,
-    fontSize: 12.5,
-    fontWeight: '700',
-    marginTop: 2,
-    maxWidth: '100%',
-  },
-  loadingWrap: {
-    alignItems: 'center',
-    flex: 1,
-    gap: 12,
-    justifyContent: 'center',
-  },
-  loadingText: {
-    color: MUTED,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  messageList: {
-    flexGrow: 1,
-    paddingBottom: 20,
-    paddingHorizontal: 18,
-    paddingTop: 18,
-  },
-  eventCard: {
-    backgroundColor: CARD,
-    borderColor: BORDER,
-    borderRadius: 20,
-    borderWidth: 1,
-    marginBottom: 16,
-    padding: 14,
-  },
-  eventHeaderRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 10,
-  },
-  eventIconCircle: {
-    alignItems: 'center',
-    backgroundColor: GREEN,
-    borderRadius: 999,
-    height: 38,
-    justifyContent: 'center',
-    width: 38,
-  },
-  eventHeaderText: {
-    flex: 1,
-  },
-  eventTitle: {
-    color: TEXT,
-    fontSize: 15.5,
-    fontWeight: '900',
-  },
-  eventStatus: {
-    color: GREEN_DARK,
-    fontSize: 12.8,
-    fontWeight: '800',
-    marginTop: 2,
-  },
-  eventDescription: {
-    color: MUTED,
-    fontSize: 13.2,
-    fontWeight: '700',
-    lineHeight: 19,
-    marginTop: 10,
-  },
-  eventDateGrid: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 12,
-  },
-  eventDatePill: {
-    backgroundColor: 'rgba(85, 99, 63, 0.08)',
-    borderColor: 'rgba(85, 99, 63, 0.16)',
-    borderRadius: 15,
-    borderWidth: 1,
-    flex: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  eventDateLabel: {
-    color: MUTED,
-    fontSize: 11.5,
-    fontWeight: '800',
-    marginBottom: 3,
-  },
-  eventDateValue: {
-    color: GREEN_DARK,
-    fontSize: 13,
-    fontWeight: '900',
-  },
-  eventActions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 12,
-  },
-  eventButton: {
-    borderColor: BORDER,
-    borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  eventButtonPrimary: {
-    backgroundColor: GREEN,
-    borderColor: GREEN,
-  },
-  eventButtonText: {
-    color: GREEN_DARK,
-    fontSize: 12.3,
-    fontWeight: '900',
-  },
-  eventButtonPrimaryText: {
-    color: '#FFFFFF',
-  },
-  bubbleRow: {
-    alignItems: 'flex-start',
-    marginBottom: 10,
-  },
-  myBubbleRow: {
-    alignItems: 'flex-end',
-  },
-  bubble: {
-    borderRadius: 18,
-    maxWidth: '82%',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  myBubble: {
-    backgroundColor: GREEN,
-    borderBottomRightRadius: 6,
-  },
-  otherBubble: {
-    backgroundColor: CARD,
-    borderBottomLeftRadius: 6,
-    borderColor: BORDER,
-    borderWidth: 1,
-  },
-  bubbleText: {
-    color: TEXT,
-    fontSize: 14.5,
-    fontWeight: '600',
-    lineHeight: 20,
-  },
-  myBubbleText: {
-    color: '#FFFFFF',
-  },
-  bubbleTime: {
-    color: MUTED,
-    fontSize: 10.5,
-    fontWeight: '700',
-    marginTop: 5,
-  },
-  myBubbleTime: {
-    color: 'rgba(255, 255, 255, 0.78)',
-  },
-  composerWrap: {
-    alignItems: 'flex-end',
-    backgroundColor: BACKGROUND,
-    borderTopColor: 'rgba(64, 80, 48, 0.08)',
-    borderTopWidth: 1,
-    flexDirection: 'row',
-    gap: 10,
-    paddingHorizontal: 18,
-    paddingTop: 12,
-  },
-  composerInput: {
-    backgroundColor: CARD,
-    borderColor: BORDER,
-    borderRadius: 18,
-    borderWidth: 1,
-    color: TEXT,
-    flex: 1,
-    fontSize: 14.5,
-    fontWeight: '600',
-    maxHeight: 112,
-    minHeight: 46,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  sendButton: {
-    alignItems: 'center',
-    backgroundColor: GREEN,
-    borderRadius: 16,
-    height: 46,
-    justifyContent: 'center',
-    width: 50,
-  },
-  disabledButton: {
-    opacity: 0.5,
-  },
-  emptyCard: {
-    alignItems: 'center',
-    backgroundColor: CARD,
-    borderColor: BORDER,
-    borderRadius: 18,
-    borderWidth: 1,
-    gap: 8,
-    padding: 24,
-  },
-  emptyTitle: {
-    color: TEXT,
-    fontSize: 15.5,
-    fontWeight: '900',
-  },
-  feedbackCard: {
-    alignItems: 'flex-start',
-    backgroundColor: 'rgba(85, 99, 63, 0.08)',
-    borderColor: 'rgba(85, 99, 63, 0.18)',
-    borderRadius: 14,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 9,
-    marginTop: 12,
-    padding: 13,
-  },
-  feedbackText: {
-    color: GREEN_DARK,
-    flex: 1,
-    fontSize: 13.5,
-    fontWeight: '700',
-    lineHeight: 19,
-  },
-  pressed: {
-    opacity: 0.78,
-  },
+  screen: { backgroundColor: BACKGROUND, flex: 1 },
+  keyboardView: { flex: 1 },
+  topBar: { alignItems: 'center', borderBottomColor: 'rgba(64, 80, 48, 0.08)', borderBottomWidth: 1, flexDirection: 'row', gap: 12, paddingBottom: 12, paddingHorizontal: 20, paddingTop: 8 },
+  iconButton: { alignItems: 'center', backgroundColor: 'rgba(255, 253, 247, 0.9)', borderColor: BORDER, borderRadius: 14, borderWidth: 1, height: 44, justifyContent: 'center', width: 44 },
+  headerTextWrap: { alignItems: 'center', flex: 1, minWidth: 0 },
+  pageTitle: { color: TEXT, fontSize: 17, fontWeight: '900', maxWidth: '100%' },
+  headerSubtitle: { color: MUTED, fontSize: 12.5, fontWeight: '700', marginTop: 2, maxWidth: '100%' },
+  loadingWrap: { alignItems: 'center', flex: 1, gap: 12, justifyContent: 'center' },
+  loadingText: { color: MUTED, fontSize: 14, fontWeight: '600' },
+  messageList: { flexGrow: 1, paddingBottom: 20, paddingHorizontal: 18, paddingTop: 18 },
+  eventCard: { backgroundColor: CARD, borderColor: BORDER, borderRadius: 20, borderWidth: 1, marginBottom: 16, padding: 14 },
+  eventHeaderRow: { alignItems: 'center', flexDirection: 'row', gap: 10 },
+  eventIconCircle: { alignItems: 'center', backgroundColor: GREEN, borderRadius: 999, height: 38, justifyContent: 'center', width: 38 },
+  eventHeaderText: { flex: 1 },
+  eventTitle: { color: TEXT, fontSize: 15.5, fontWeight: '900' },
+  eventStatus: { color: GREEN_DARK, fontSize: 12.8, fontWeight: '800', marginTop: 2 },
+  eventDescription: { color: MUTED, fontSize: 13.2, fontWeight: '700', lineHeight: 19, marginTop: 10 },
+  timelineRow: { backgroundColor: 'rgba(85, 99, 63, 0.06)', borderRadius: 16, flexDirection: 'row', gap: 4, marginTop: 12, padding: 10 },
+  timelineItem: { alignItems: 'center', flex: 1, minWidth: 0 },
+  timelineDot: { backgroundColor: 'rgba(119, 115, 107, 0.28)', borderRadius: 999, height: 9, marginBottom: 5, width: 9 },
+  timelineDotDone: { backgroundColor: GREEN },
+  timelineDotCurrent: { height: 12, width: 12 },
+  timelineText: { color: MUTED, fontSize: 9.5, fontWeight: '800' },
+  timelineTextDone: { color: GREEN_DARK },
+  stoppedTimelineCard: { alignItems: 'center', backgroundColor: 'rgba(159, 46, 46, 0.08)', borderColor: 'rgba(159, 46, 46, 0.18)', borderRadius: 14, borderWidth: 1, flexDirection: 'row', gap: 8, marginTop: 12, padding: 10 },
+  stoppedTimelineText: { color: '#9F2E2E', fontSize: 12.5, fontWeight: '900' },
+  eventDateGrid: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  eventDatePill: { backgroundColor: 'rgba(85, 99, 63, 0.08)', borderColor: 'rgba(85, 99, 63, 0.16)', borderRadius: 15, borderWidth: 1, flex: 1, paddingHorizontal: 12, paddingVertical: 10 },
+  eventDateLabel: { color: MUTED, fontSize: 11.5, fontWeight: '800', marginBottom: 3 },
+  eventDateValue: { color: GREEN_DARK, fontSize: 13, fontWeight: '900' },
+  eventActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
+  eventButton: { borderColor: BORDER, borderRadius: 999, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8 },
+  eventButtonPrimary: { backgroundColor: GREEN, borderColor: GREEN },
+  eventButtonText: { color: GREEN_DARK, fontSize: 12.3, fontWeight: '900' },
+  eventButtonPrimaryText: { color: '#FFFFFF' },
+  bubbleRow: { alignItems: 'flex-start', marginBottom: 10 },
+  myBubbleRow: { alignItems: 'flex-end' },
+  bubble: { borderRadius: 18, maxWidth: '82%', paddingHorizontal: 14, paddingVertical: 10 },
+  myBubble: { backgroundColor: GREEN, borderBottomRightRadius: 6 },
+  otherBubble: { backgroundColor: CARD, borderBottomLeftRadius: 6, borderColor: BORDER, borderWidth: 1 },
+  bubbleText: { color: TEXT, fontSize: 14.5, fontWeight: '600', lineHeight: 20 },
+  myBubbleText: { color: '#FFFFFF' },
+  bubbleTime: { color: MUTED, fontSize: 10.5, fontWeight: '700', marginTop: 5 },
+  myBubbleTime: { color: 'rgba(255, 255, 255, 0.78)' },
+  composerWrap: { alignItems: 'flex-end', backgroundColor: BACKGROUND, borderTopColor: 'rgba(64, 80, 48, 0.08)', borderTopWidth: 1, flexDirection: 'row', gap: 10, paddingHorizontal: 18, paddingTop: 12 },
+  composerInput: { backgroundColor: CARD, borderColor: BORDER, borderRadius: 18, borderWidth: 1, color: TEXT, flex: 1, fontSize: 14.5, fontWeight: '600', maxHeight: 112, minHeight: 46, paddingHorizontal: 14, paddingVertical: 12 },
+  sendButton: { alignItems: 'center', backgroundColor: GREEN, borderRadius: 16, height: 46, justifyContent: 'center', width: 50 },
+  disabledButton: { opacity: 0.5 },
+  emptyCard: { alignItems: 'center', backgroundColor: CARD, borderColor: BORDER, borderRadius: 18, borderWidth: 1, gap: 8, padding: 24 },
+  emptyTitle: { color: TEXT, fontSize: 15.5, fontWeight: '900' },
+  feedbackCard: { alignItems: 'flex-start', backgroundColor: 'rgba(85, 99, 63, 0.08)', borderColor: 'rgba(85, 99, 63, 0.18)', borderRadius: 14, borderWidth: 1, flexDirection: 'row', gap: 9, marginTop: 12, padding: 13 },
+  feedbackText: { color: GREEN_DARK, flex: 1, fontSize: 13.5, fontWeight: '700', lineHeight: 19 },
+  pressed: { opacity: 0.78 },
 });
