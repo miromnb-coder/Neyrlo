@@ -40,7 +40,7 @@ export async function pickListingImages(currentCount = 0): Promise<SelectedListi
     allowsMultipleSelection: true,
     mediaTypes: ImagePicker.MediaTypeOptions.Images,
     orderedSelection: true,
-    quality: 0.84,
+    quality: 0.72,
     selectionLimit: remainingSlots,
   });
 
@@ -127,6 +127,62 @@ export async function uploadListingImages(params: {
   }
 
   return uploadedImages;
+}
+
+export async function deleteListingImage(image: Pick<ListingImageRecord, 'id' | 'storage_path'>) {
+  const { error: storageError } = await supabase.storage.from('listing-images').remove([image.storage_path]);
+
+  if (storageError) {
+    throw storageError;
+  }
+
+  const { error } = await supabase.from('listing_images').delete().eq('id', image.id);
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function reorderListingImages(images: Pick<ListingImageRecord, 'id'>[]) {
+  for (const [index, image] of images.entries()) {
+    const { error } = await supabase.from('listing_images').update({ sort_order: index }).eq('id', image.id);
+
+    if (error) {
+      throw error;
+    }
+  }
+}
+
+export async function setListingCoverImage(images: ListingImageRecord[], imageId: string) {
+  const selectedImage = images.find((image) => image.id === imageId);
+
+  if (!selectedImage) {
+    throw new Error('Kuvaa ei löytynyt.');
+  }
+
+  const nextImages = [selectedImage, ...images.filter((image) => image.id !== imageId)];
+  await reorderListingImages(nextImages);
+  return nextImages.map((image, index) => ({ ...image, sort_order: index }));
+}
+
+export function moveListingImage(images: ListingImageRecord[], imageId: string, direction: 'down' | 'up') {
+  const currentIndex = images.findIndex((image) => image.id === imageId);
+
+  if (currentIndex < 0) {
+    return images;
+  }
+
+  const nextIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+
+  if (nextIndex < 0 || nextIndex >= images.length) {
+    return images;
+  }
+
+  const nextImages = [...images];
+  const [image] = nextImages.splice(currentIndex, 1);
+  nextImages.splice(nextIndex, 0, image);
+
+  return nextImages.map((item, index) => ({ ...item, sort_order: index }));
 }
 
 export function getListingImagePublicUrl(storagePath: string) {
