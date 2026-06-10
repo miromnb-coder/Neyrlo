@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useAuth } from '@/lib/auth';
 import {
   createDraftListing,
   parsePriceAmount,
@@ -31,16 +32,26 @@ import {
   type ListingImageRecord,
   type SelectedListingImage,
 } from '@/lib/listingImages';
-import { useAuth } from '@/lib/auth';
 
-const ADD_GREEN = '#55633F';
-const ADD_GREEN_DARK = '#3F4E2F';
-const ADD_BACKGROUND = '#FFFDF7';
-const CARD_BACKGROUND = 'rgba(255, 253, 247, 0.92)';
-const FIELD_BORDER = 'rgba(64, 80, 48, 0.12)';
-const DASHED_BORDER = 'rgba(85, 99, 63, 0.32)';
-const MUTED_TEXT = '#8B8880';
-const BODY_TEXT = '#20251F';
+const DARK_OLIVE = '#41482C';
+const DARK_OLIVE_DARK = '#30361F';
+const BACKGROUND = '#FFFDF7';
+const CARD = '#FFFDF9';
+const BORDER = 'rgba(229, 218, 206, 0.82)';
+const MUTED = '#686D66';
+const TEXT = '#20251F';
+const PLACEHOLDER = '#9A948B';
+const FIELD_BACKGROUND = 'rgba(255, 253, 247, 0.86)';
+const DASHED_BORDER = 'rgba(65, 72, 44, 0.23)';
+
+const steps = [
+  { label: 'Kuvat ja\nperustiedot', value: 1 },
+  { label: 'Kuvaus', value: 2 },
+  { label: 'Tiedot', value: 3 },
+  { label: 'Saatavuus', value: 4 },
+  { label: 'Lisätiedot', value: 5 },
+  { label: 'Esikatselu', value: 6 },
+];
 
 type ListingIntent = 'Lainaa' | 'Vuokraa' | 'Vaihda' | 'Ilmainen';
 
@@ -62,18 +73,19 @@ type CategoryOption = {
 };
 
 const intentOptions: IntentOption[] = [
-  { icon: 'leaf-outline', label: 'Lainaa' },
-  { icon: 'briefcase-outline', label: 'Vuokraa' },
+  { icon: 'repeat-outline', label: 'Lainaa' },
+  { icon: 'calendar-outline', label: 'Vuokraa' },
   { icon: 'swap-horizontal-outline', label: 'Vaihda' },
   { icon: 'gift-outline', label: 'Ilmainen' },
 ];
 
 const categories: CategoryOption[] = [
   { id: 'tools', label: 'Työkalut' },
-  { id: 'outdoors', label: 'Ulkoilu' },
+  { id: 'outdoors', label: 'Retkeily' },
   { id: 'travel', label: 'Matkustus' },
   { id: 'electronics', label: 'Elektroniikka' },
   { id: 'home', label: 'Koti' },
+  { id: 'sports', label: 'Pyörät' },
 ];
 
 export default function AddItemScreen() {
@@ -81,7 +93,7 @@ export default function AddItemScreen() {
   const { session } = useAuth();
   const [intent, setIntent] = useState<ListingIntent>('Lainaa');
   const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+  const [description] = useState('');
   const [price, setPrice] = useState('');
   const [categoryIndex, setCategoryIndex] = useState(-1);
   const [selectedLocation, setSelectedLocation] = useState<SelectedLocation | null>(null);
@@ -95,12 +107,14 @@ export default function AddItemScreen() {
 
   const selectedCategory = categoryIndex >= 0 ? categories[categoryIndex].label : 'Valitse kategoria';
   const selectedCategoryId = categoryIndex >= 0 ? categories[categoryIndex].id : null;
-  const locationLabel = isGettingLocation ? 'Haetaan sijaintia...' : selectedLocation?.label ?? 'Valitse sijainti';
+  const locationLabel = isGettingLocation ? 'Haetaan sijaintia...' : selectedLocation?.label ?? 'Nykyinen sijainti';
   const imageCount = selectedImages.length + uploadedImages.length;
   const previewUris = [
     ...uploadedImages.map((image) => getListingImagePublicUrl(image.storage_path)),
     ...selectedImages.map((image) => image.uri),
-  ].slice(0, 3);
+  ];
+  const mainImageUri = previewUris[0];
+  const sideImageUris = previewUris.slice(1, 5);
 
   const cycleCategory = () => {
     setFeedback(null);
@@ -156,9 +170,7 @@ export default function AddItemScreen() {
   };
 
   const openLocationMenu = () => {
-    if (isGettingLocation || isSaving) {
-      return;
-    }
+    if (isGettingLocation || isSaving) return;
 
     const message = 'Näytämme muille vain suurpiirteisen sijainnin. Tarkka noutopaikka sovitaan myöhemmin viesteissä.';
 
@@ -171,13 +183,8 @@ export default function AddItemScreen() {
           title: 'Valitse sijainti',
         },
         (buttonIndex) => {
-          if (buttonIndex === 0) {
-            void useCurrentLocation();
-          }
-
-          if (buttonIndex === 1) {
-            chooseLocationLater();
-          }
+          if (buttonIndex === 0) void useCurrentLocation();
+          if (buttonIndex === 1) chooseLocationLater();
         },
       );
       return;
@@ -191,9 +198,7 @@ export default function AddItemScreen() {
   };
 
   const handleImagePress = async () => {
-    if (isPickingImages || isSaving) {
-      return;
-    }
+    if (isPickingImages || isSaving) return;
 
     setFeedback(null);
     setIsPickingImages(true);
@@ -201,9 +206,7 @@ export default function AddItemScreen() {
     try {
       const images = await pickListingImages(imageCount);
 
-      if (images.length === 0) {
-        return;
-      }
+      if (images.length === 0) return;
 
       setSelectedImages((currentImages) => [...currentImages, ...images].slice(0, 10));
       setFeedback(`${images.length} kuva${images.length === 1 ? '' : 'a'} valittu. Kuvat tallennetaan luonnokseen, kun painat Jatka.`);
@@ -215,9 +218,7 @@ export default function AddItemScreen() {
   };
 
   const handleContinue = async () => {
-    if (isSaving) {
-      return;
-    }
+    if (isSaving) return;
 
     setFeedback(null);
     setIsSaving(true);
@@ -270,159 +271,150 @@ export default function AddItemScreen() {
   return (
     <SafeAreaView edges={['top', 'bottom']} style={styles.screen}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.keyboardView}>
-        <View style={styles.topBar}>
-          <Pressable
-            accessibilityLabel="Sulje"
-            hitSlop={12}
-            onPress={() => router.replace('/(tabs)')}
-            style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}
-          >
-            <Ionicons color="#1D241D" name="close-outline" size={27} />
-          </Pressable>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <View style={styles.headerArea}>
+            <Pressable accessibilityLabel="Sulje" hitSlop={12} onPress={() => router.replace('/(tabs)')} style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}>
+              <Ionicons color={TEXT} name="close-outline" size={29} />
+            </Pressable>
+            <Text allowFontScaling={false} style={styles.brand}>NEYRLO</Text>
+            <Text allowFontScaling={false} style={styles.pageTitle}>Luo ilmoitus</Text>
+          </View>
 
-          <Text allowFontScaling={false} style={styles.pageTitle}>Luo ilmoitus</Text>
-          <View style={styles.headerSpacer} />
-        </View>
+          <StepProgress />
 
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <Pressable onPress={handleImagePress} style={({ pressed }) => [styles.photoCard, pressed && styles.pressed]}>
-            <View style={styles.cameraCircle}>
-              {isPickingImages ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
-              ) : (
-                <Ionicons color="#FFFFFF" name="camera-outline" size={35} />
-              )}
-              <View style={styles.cameraPlusBadge}>
-                <Ionicons color={ADD_GREEN} name="add" size={16} />
-              </View>
+          <View style={styles.sectionIntro}>
+            <Text allowFontScaling={false} style={styles.sectionTitle}>Kuvat</Text>
+            <Text allowFontScaling={false} style={styles.sectionSubtitle}>Lisää kuvia, jotka kuvaavat tuotettasi parhaiten.</Text>
+          </View>
+
+          <View style={styles.photoGrid}>
+            <Pressable onPress={handleImagePress} style={({ pressed }) => [styles.mainPhotoSlot, pressed && styles.pressed]}>
+              {mainImageUri ? <Image source={{ uri: mainImageUri }} style={styles.slotImage} /> : <MainPhotoPlaceholder loading={isPickingImages} />}
+            </Pressable>
+
+            <View style={styles.sidePhotoGrid}>
+              {Array.from({ length: 4 }).map((_, index) => (
+                <Pressable key={index} onPress={handleImagePress} style={({ pressed }) => [styles.sidePhotoSlot, pressed && styles.pressed]}>
+                  {sideImageUris[index] ? (
+                    <Image source={{ uri: sideImageUris[index] }} style={styles.slotImage} />
+                  ) : (
+                    <View style={styles.sidePlaceholder}>
+                      <Ionicons color="rgba(65,72,44,0.18)" name={sidePlaceholderIcon(index)} size={36} />
+                    </View>
+                  )}
+                  <View style={styles.photoAddBadge}>
+                    <Ionicons color={DARK_OLIVE} name="add" size={18} />
+                  </View>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.formBlock}>
+            <Text allowFontScaling={false} style={styles.fieldLabel}>Otsikko</Text>
+            <View style={styles.titleField}>
+              <TextInput
+                allowFontScaling={false}
+                editable={!isSaving}
+                maxLength={80}
+                onChangeText={(value) => {
+                  setFeedback(null);
+                  setTitle(value);
+                }}
+                placeholder="Mitä tarjoat?"
+                placeholderTextColor={PLACEHOLDER}
+                style={styles.titleInput}
+                value={title}
+              />
+              <Text allowFontScaling={false} style={styles.counterText}>{title.length}/80</Text>
             </View>
 
-            <Text allowFontScaling={false} style={styles.photoTitle}>
-              {imageCount > 0 ? `${imageCount} kuva${imageCount === 1 ? '' : 'a'} valittu` : 'Lisää kuvia'}
-            </Text>
-            <Text allowFontScaling={false} style={styles.photoSubtitle}>
-              {imageCount > 0 ? 'Lisää kuvia tai jatka luonnoksen tallennukseen' : 'Lisää jopa 10 kuvaa'}
-            </Text>
-
-            {previewUris.length > 0 && (
-              <View style={styles.previewRow}>
-                {previewUris.map((uri) => (
-                  <Image key={uri} source={{ uri }} style={styles.previewImage} />
-                ))}
+            <Text allowFontScaling={false} style={styles.fieldLabel}>Kategoria</Text>
+            <Pressable disabled={isSaving} onPress={cycleCategory} style={({ pressed }) => [styles.actionField, pressed && styles.pressed]}>
+              <View style={styles.actionFieldLeft}>
+                <Ionicons color={MUTED} name="grid-outline" size={22} />
+                <Text allowFontScaling={false} numberOfLines={1} style={styles.actionFieldText}>{selectedCategory}</Text>
               </View>
-            )}
+              <Ionicons color={TEXT} name="chevron-forward" size={21} />
+            </Pressable>
 
-            <View pointerEvents="none" style={styles.leafGhost}>
-              <Ionicons color="rgba(85, 99, 63, 0.075)" name="leaf-outline" size={82} />
+            <View style={styles.labelWithInfoRow}>
+              <Text allowFontScaling={false} style={styles.fieldLabelNoMargin}>Jakamistapa</Text>
+              <Ionicons color={MUTED} name="information-circle-outline" size={17} />
             </View>
-          </Pressable>
+            <View style={styles.intentRow}>
+              {intentOptions.map((option) => {
+                const selected = option.label === intent;
 
-          <View style={styles.formStack}>
-            <FormInputRow
-              editable={!isSaving}
-              icon="pricetag-outline"
-              label="Otsikko"
-              onChangeText={(value) => {
-                setFeedback(null);
-                setTitle(value);
-              }}
-              placeholder="Mitä jaat?"
-              value={title}
-            />
+                return (
+                  <Pressable
+                    disabled={isSaving}
+                    key={option.label}
+                    onPress={() => {
+                      setFeedback(null);
+                      setIntent(option.label);
+                    }}
+                    style={({ pressed }) => [styles.intentChip, selected && styles.intentChipActive, pressed && styles.pressed]}
+                  >
+                    <Ionicons color={selected ? '#FFFFFF' : MUTED} name={option.icon} size={16} />
+                    <Text allowFontScaling={false} style={[styles.intentChipText, selected && styles.intentChipTextActive]}>{option.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
 
-            <FormInputRow
-              editable={!isSaving}
-              icon="document-text-outline"
-              label="Kuvaus"
-              multiline
-              onChangeText={(value) => {
-                setFeedback(null);
-                setDescription(value);
-              }}
-              placeholder="Kerro tavarasta, kunnosta ja muista oleellisista tiedoista."
-              value={description}
-            />
-
-            <FormActionRow disabled={isSaving} icon="grid-outline" label="Kategoria" onPress={cycleCategory} value={selectedCategory} />
-
-            <View style={styles.shareMethodCard}>
-              <View style={styles.shareIconSlot}>
-                <Ionicons color={ADD_GREEN_DARK} name="swap-horizontal-outline" size={24} />
-              </View>
-              <View style={styles.shareContent}>
-                <Text allowFontScaling={false} style={styles.formLabel}>Jakotapa</Text>
-                <View style={styles.intentChips}>
-                  {intentOptions.map((option) => {
-                    const selected = option.label === intent;
-
-                    return (
-                      <Pressable
-                        disabled={isSaving}
-                        key={option.label}
-                        onPress={() => {
-                          setFeedback(null);
-                          setIntent(option.label);
-                        }}
-                        style={({ pressed }) => [
-                          styles.intentChip,
-                          selected && styles.intentChipActive,
-                          pressed && styles.pressed,
-                        ]}
-                      >
-                        <Ionicons color={selected ? '#FFFFFF' : ADD_GREEN_DARK} name={option.icon} size={15} />
-                        <Text allowFontScaling={false} style={[styles.intentChipText, selected && styles.intentChipTextActive]}>
-                          {option.label}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
+            <View style={styles.twoColumnRow}>
+              <View style={styles.halfFieldBlock}>
+                <View style={styles.labelWithInfoRow}>
+                  <Text allowFontScaling={false} style={styles.fieldLabelNoMargin}>Korvaus</Text>
+                  <Ionicons color={MUTED} name="information-circle-outline" size={17} />
+                </View>
+                <View style={styles.compensationField}>
+                  <Text allowFontScaling={false} style={styles.euroText}>€</Text>
+                  <TextInput
+                    allowFontScaling={false}
+                    editable={!isSaving}
+                    keyboardType="decimal-pad"
+                    onChangeText={(value) => {
+                      setFeedback(null);
+                      setPrice(value);
+                    }}
+                    placeholder="Esim. 10"
+                    placeholderTextColor={PLACEHOLDER}
+                    style={styles.compensationInput}
+                    value={price}
+                  />
+                  <Text allowFontScaling={false} style={styles.perDayText}>/ päivä</Text>
+                  <Ionicons color={MUTED} name="chevron-down" size={15} />
                 </View>
               </View>
+
+              <View style={styles.halfFieldBlock}>
+                <Text allowFontScaling={false} style={styles.fieldLabelNoMargin}>Sijainti</Text>
+                <Pressable disabled={isSaving || isGettingLocation} onPress={openLocationMenu} style={({ pressed }) => [styles.locationField, pressed && styles.pressed]}>
+                  <Ionicons color={MUTED} name="location-outline" size={20} />
+                  <Text allowFontScaling={false} numberOfLines={1} style={styles.locationText}>{locationLabel}</Text>
+                  {isGettingLocation ? <ActivityIndicator color={DARK_OLIVE} size="small" /> : <Ionicons color={DARK_OLIVE} name="locate-outline" size={20} />}
+                </Pressable>
+              </View>
             </View>
-
-            <FormInputRow
-              editable={!isSaving}
-              icon="pricetag-outline"
-              label="Hinta / korvaus"
-              onChangeText={(value) => {
-                setFeedback(null);
-                setPrice(value);
-              }}
-              optionalText="Valinnainen"
-              placeholder="0,00 €"
-              value={price}
-            />
-
-            <FormActionRow
-              disabled={isSaving}
-              icon="location-outline"
-              label="Sijainti"
-              loading={isGettingLocation}
-              onPress={openLocationMenu}
-              value={locationLabel}
-            />
           </View>
 
           {!!feedback && (
             <View style={styles.feedbackCard}>
-              <Ionicons color={ADD_GREEN_DARK} name="information-circle-outline" size={19} />
+              <Ionicons color={DARK_OLIVE} name="information-circle-outline" size={18} />
               <Text allowFontScaling={false} style={styles.feedbackText}>{feedback}</Text>
             </View>
           )}
 
-          <Pressable
-            disabled={isSaving}
-            onPress={handleContinue}
-            style={({ pressed }) => [styles.continueButton, isSaving && styles.disabledButton, pressed && styles.pressed]}
-          >
+          <Pressable disabled={isSaving} onPress={handleContinue} style={({ pressed }) => [styles.continueButton, isSaving && styles.disabledButton, pressed && styles.pressed]}>
             {isSaving ? (
               <ActivityIndicator color="#FFFFFF" size="small" />
             ) : (
-              <Text allowFontScaling={false} style={styles.continueText}>Jatka</Text>
+              <>
+                <Text allowFontScaling={false} style={styles.continueText}>Jatka</Text>
+                <Ionicons color="#FFFFFF" name="arrow-forward" size={23} />
+              </>
             )}
           </Pressable>
         </ScrollView>
@@ -431,357 +423,460 @@ export default function AddItemScreen() {
   );
 }
 
-function formatLocationLabel(place?: Location.LocationGeocodedAddress) {
-  if (!place) {
-    return 'Nykyinen sijainti valittu';
-  }
-
-  const area = place.district ?? place.subregion;
-  const city = place.city ?? place.region;
-
-  if (area && city && area !== city) {
-    return `${area}, ${city}`;
-  }
-
-  return city ?? place.region ?? 'Nykyinen sijainti valittu';
-}
-
-type FormInputRowProps = {
-  editable?: boolean;
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  multiline?: boolean;
-  onChangeText: (value: string) => void;
-  optionalText?: string;
-  placeholder: string;
-  value: string;
-};
-
-function FormInputRow({ editable = true, icon, label, multiline, onChangeText, optionalText, placeholder, value }: FormInputRowProps) {
+function MainPhotoPlaceholder({ loading }: { loading: boolean }) {
   return (
-    <View style={[styles.formRow, multiline && styles.formRowMultiline]}>
-      <Ionicons color={ADD_GREEN_DARK} name={icon} size={23} />
-      <View style={styles.formTextWrap}>
-        <View style={styles.labelRow}>
-          <Text allowFontScaling={false} style={styles.formLabel}>{label}</Text>
-          {!!optionalText && <Text allowFontScaling={false} style={styles.optionalText}>{optionalText}</Text>}
-        </View>
-        <TextInput
-          editable={editable}
-          multiline={multiline}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          placeholderTextColor={MUTED_TEXT}
-          style={[styles.input, multiline && styles.multilineInput]}
-          value={value}
-        />
-      </View>
+    <View style={styles.mainPlaceholder}>
+      {loading ? <ActivityIndicator color={DARK_OLIVE} size="small" /> : <Ionicons color={DARK_OLIVE} name="images-outline" size={38} />}
+      <Text allowFontScaling={false} style={styles.mainPhotoTitle}>Lisää pääkuva</Text>
+      <Text allowFontScaling={false} style={styles.mainPhotoSubtitle}>Suositus 4:3 tai 1:1</Text>
     </View>
   );
 }
 
-type FormActionRowProps = {
-  disabled?: boolean;
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  loading?: boolean;
-  onPress: () => void;
-  value: string;
-};
-
-function FormActionRow({ disabled, icon, label, loading, onPress, value }: FormActionRowProps) {
+function StepProgress() {
   return (
-    <Pressable disabled={disabled || loading} onPress={onPress} style={({ pressed }) => [styles.formRow, pressed && styles.pressed]}>
-      <Ionicons color={ADD_GREEN_DARK} name={icon} size={23} />
-      <View style={styles.formTextWrap}>
-        <Text allowFontScaling={false} style={styles.formLabel}>{label}</Text>
-        <Text allowFontScaling={false} numberOfLines={1} style={styles.formValue}>{value}</Text>
-      </View>
-      {loading ? (
-        <ActivityIndicator color={ADD_GREEN_DARK} size="small" />
-      ) : (
-        <Ionicons color={ADD_GREEN_DARK} name="chevron-forward" size={22} />
-      )}
-    </Pressable>
+    <View style={styles.stepArea}>
+      <View style={styles.stepLine} />
+      {steps.map((step, index) => {
+        const active = index === 0;
+
+        return (
+          <View key={step.value} style={styles.stepItem}>
+            <View style={[styles.stepCircle, active && styles.stepCircleActive]}>
+              <Text allowFontScaling={false} style={[styles.stepNumber, active && styles.stepNumberActive]}>{step.value}</Text>
+            </View>
+            <Text allowFontScaling={false} style={[styles.stepLabel, active && styles.stepLabelActive]}>{step.label}</Text>
+          </View>
+        );
+      })}
+    </View>
   );
+}
+
+function sidePlaceholderIcon(index: number): keyof typeof Ionicons.glyphMap {
+  switch (index) {
+    case 0:
+      return 'leaf-outline';
+    case 1:
+      return 'chair-outline';
+    case 2:
+      return 'bicycle-outline';
+    case 3:
+      return 'triangle-outline';
+    default:
+      return 'image-outline';
+  }
+}
+
+function formatLocationLabel(place?: Location.LocationGeocodedAddress) {
+  if (!place) return 'Nykyinen sijainti valittu';
+
+  const area = place.district ?? place.subregion;
+  const city = place.city ?? place.region;
+
+  if (area && city && area !== city) return `${area}, ${city}`;
+
+  return city ?? place.region ?? 'Nykyinen sijainti valittu';
 }
 
 const serifFont = Platform.select({ ios: 'Georgia', android: 'serif', default: 'serif' });
 
 const styles = StyleSheet.create({
   screen: {
-    backgroundColor: ADD_BACKGROUND,
+    backgroundColor: BACKGROUND,
     flex: 1,
   },
   keyboardView: {
     flex: 1,
   },
-  topBar: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 26,
+  content: {
+    paddingBottom: 124,
+    paddingHorizontal: 24,
     paddingTop: 8,
+  },
+  headerArea: {
+    alignItems: 'center',
+    minHeight: 124,
+    paddingTop: 2,
   },
   closeButton: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 253, 247, 0.88)',
-    borderColor: FIELD_BORDER,
-    borderRadius: 14,
+    backgroundColor: 'rgba(255, 253, 247, 0.94)',
+    borderColor: BORDER,
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 56,
+    justifyContent: 'center',
+    left: 0,
+    position: 'absolute',
+    shadowColor: '#1F261B',
+    shadowOffset: { height: 7, width: 0 },
+    shadowOpacity: 0.055,
+    shadowRadius: 14,
+    top: 42,
+    width: 56,
+  },
+  brand: {
+    color: DARK_OLIVE,
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 4,
+    textAlign: 'center',
+  },
+  pageTitle: {
+    color: TEXT,
+    fontFamily: serifFont,
+    fontSize: 34,
+    fontWeight: Platform.OS === 'ios' ? '500' : '700',
+    letterSpacing: -0.75,
+    lineHeight: 40,
+    marginTop: 36,
+  },
+  stepArea: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 34,
+    marginTop: 2,
+    position: 'relative',
+  },
+  stepLine: {
+    backgroundColor: 'rgba(104, 109, 102, 0.22)',
+    height: 1,
+    left: 46,
+    position: 'absolute',
+    right: 46,
+    top: 22,
+  },
+  stepItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  stepCircle: {
+    alignItems: 'center',
+    backgroundColor: BACKGROUND,
+    borderColor: 'rgba(104, 109, 102, 0.25)',
+    borderRadius: 999,
     borderWidth: 1,
     height: 45,
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { height: 6, width: 0 },
-    shadowOpacity: 0.045,
-    shadowRadius: 12,
     width: 45,
   },
-  pageTitle: {
-    color: '#182118',
-    fontFamily: serifFont,
-    fontSize: 30,
-    fontWeight: Platform.OS === 'ios' ? '500' : '400',
-    letterSpacing: -0.45,
-    lineHeight: 38,
+  stepCircleActive: {
+    backgroundColor: DARK_OLIVE,
+    borderColor: DARK_OLIVE,
   },
-  headerSpacer: {
-    width: 45,
-  },
-  content: {
-    paddingBottom: 24,
-    paddingHorizontal: 24,
-    paddingTop: 20,
-  },
-  photoCard: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 253, 247, 0.58)',
-    borderColor: DASHED_BORDER,
-    borderRadius: 19,
-    borderStyle: 'dashed',
-    borderWidth: 1.25,
-    justifyContent: 'center',
-    marginBottom: 22,
-    minHeight: 202,
-    overflow: 'hidden',
-    paddingVertical: 22,
-  },
-  cameraCircle: {
-    alignItems: 'center',
-    backgroundColor: ADD_GREEN,
-    borderRadius: 999,
-    height: 78,
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { height: 8, width: 0 },
-    shadowOpacity: 0.075,
-    shadowRadius: 15,
-    width: 78,
-  },
-  cameraPlusBadge: {
-    alignItems: 'center',
-    backgroundColor: '#FFFDF7',
-    borderRadius: 999,
-    bottom: 17,
-    height: 21,
-    justifyContent: 'center',
-    position: 'absolute',
-    right: 15,
-    width: 21,
-  },
-  photoTitle: {
-    color: '#1F2A1D',
-    fontSize: 20,
+  stepNumber: {
+    color: MUTED,
+    fontSize: 13.5,
     fontWeight: '700',
-    letterSpacing: -0.2,
-    marginTop: 16,
   },
-  photoSubtitle: {
-    color: MUTED_TEXT,
-    fontSize: 15,
-    fontWeight: '500',
-    marginTop: 7,
+  stepNumberActive: {
+    color: '#FFFFFF',
+  },
+  stepLabel: {
+    color: MUTED,
+    fontSize: 11.3,
+    fontWeight: '600',
+    lineHeight: 15,
+    marginTop: 8,
+    minHeight: 32,
     textAlign: 'center',
   },
-  previewRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 14,
-  },
-  previewImage: {
-    borderColor: 'rgba(85, 99, 63, 0.18)',
-    borderRadius: 10,
-    borderWidth: 1,
-    height: 52,
-    width: 52,
-  },
-  leafGhost: {
-    opacity: 0.9,
-    position: 'absolute',
-    right: 22,
-    top: 102,
-    transform: [{ rotate: '-28deg' }],
-  },
-  formStack: {
-    gap: 13,
-  },
-  formRow: {
-    alignItems: 'center',
-    backgroundColor: CARD_BACKGROUND,
-    borderColor: FIELD_BORDER,
-    borderRadius: 17,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 15,
-    minHeight: 70,
-    paddingHorizontal: 18,
-    paddingVertical: 11,
-    shadowColor: '#000',
-    shadowOffset: { height: 6, width: 0 },
-    shadowOpacity: 0.02,
-    shadowRadius: 10,
-  },
-  formRowMultiline: {
-    alignItems: 'flex-start',
-    minHeight: 84,
-    paddingTop: 15,
-  },
-  formTextWrap: {
-    flex: 1,
-  },
-  labelRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  formLabel: {
-    color: BODY_TEXT,
-    fontSize: 16.4,
+  stepLabelActive: {
+    color: TEXT,
     fontWeight: '700',
-    letterSpacing: -0.12,
-    lineHeight: 21,
   },
-  formValue: {
-    color: MUTED_TEXT,
-    fontSize: 14.8,
-    fontWeight: '500',
-    marginTop: 4,
+  sectionIntro: {
+    marginBottom: 16,
   },
-  optionalText: {
-    color: MUTED_TEXT,
-    fontSize: 13.3,
-    fontWeight: '500',
+  sectionTitle: {
+    color: TEXT,
+    fontFamily: serifFont,
+    fontSize: 23,
+    fontWeight: Platform.OS === 'ios' ? '500' : '700',
+    letterSpacing: -0.35,
+    lineHeight: 28,
   },
-  input: {
-    color: BODY_TEXT,
-    fontSize: 14.8,
-    fontWeight: '500',
-    marginTop: 3,
-    padding: 0,
-  },
-  multilineInput: {
+  sectionSubtitle: {
+    color: MUTED,
+    fontSize: 14,
+    fontWeight: '600',
     lineHeight: 20,
-    minHeight: 38,
-    paddingTop: 1,
-    textAlignVertical: 'top',
+    marginTop: 3,
   },
-  shareMethodCard: {
-    alignItems: 'center',
-    backgroundColor: CARD_BACKGROUND,
-    borderColor: FIELD_BORDER,
-    borderRadius: 17,
-    borderWidth: 1,
+  photoGrid: {
     flexDirection: 'row',
-    gap: 14,
-    minHeight: 94,
-    paddingHorizontal: 18,
-    paddingVertical: 13,
-    shadowColor: '#000',
-    shadowOffset: { height: 6, width: 0 },
-    shadowOpacity: 0.02,
-    shadowRadius: 10,
+    gap: 12,
+    marginBottom: 30,
   },
-  shareIconSlot: {
-    alignSelf: 'flex-start',
-    paddingTop: 3,
+  mainPhotoSlot: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 253, 247, 0.64)',
+    borderColor: DASHED_BORDER,
+    borderRadius: 18,
+    borderStyle: 'dashed',
+    borderWidth: 1.2,
+    flex: 1.55,
+    height: 178,
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
-  shareContent: {
-    flex: 1,
+  mainPlaceholder: {
+    alignItems: 'center',
+    gap: 5,
   },
-  intentChips: {
+  mainPhotoTitle: {
+    color: TEXT,
+    fontFamily: serifFont,
+    fontSize: 18,
+    fontWeight: Platform.OS === 'ios' ? '500' : '700',
+    letterSpacing: -0.2,
+    marginTop: 12,
+  },
+  mainPhotoSubtitle: {
+    color: MUTED,
+    fontSize: 12.6,
+    fontWeight: '600',
+  },
+  sidePhotoGrid: {
+    flex: 1.32,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 7,
-    marginTop: 9,
+    gap: 9,
+  },
+  sidePhotoSlot: {
+    backgroundColor: '#F4EDE5',
+    borderColor: BORDER,
+    borderRadius: 14,
+    borderWidth: 1,
+    height: 84.5,
+    overflow: 'hidden',
+    width: '47%',
+  },
+  sidePlaceholder: {
+    alignItems: 'center',
+    height: '100%',
+    justifyContent: 'center',
+    width: '100%',
+  },
+  slotImage: {
+    height: '100%',
+    resizeMode: 'cover',
+    width: '100%',
+  },
+  photoAddBadge: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 253, 247, 0.96)',
+    borderRadius: 999,
+    bottom: 8,
+    height: 31,
+    justifyContent: 'center',
+    position: 'absolute',
+    right: 8,
+    shadowColor: '#1F261B',
+    shadowOffset: { height: 4, width: 0 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    width: 31,
+  },
+  formBlock: {
+    gap: 11,
+  },
+  fieldLabel: {
+    color: TEXT,
+    fontFamily: serifFont,
+    fontSize: 20,
+    fontWeight: Platform.OS === 'ios' ? '500' : '700',
+    letterSpacing: -0.25,
+    marginTop: 2,
+  },
+  fieldLabelNoMargin: {
+    color: TEXT,
+    fontFamily: serifFont,
+    fontSize: 20,
+    fontWeight: Platform.OS === 'ios' ? '500' : '700',
+    letterSpacing: -0.25,
+  },
+  titleField: {
+    alignItems: 'center',
+    backgroundColor: FIELD_BACKGROUND,
+    borderColor: BORDER,
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: 'row',
+    height: 56,
+    paddingLeft: 17,
+    paddingRight: 14,
+  },
+  titleInput: {
+    color: TEXT,
+    flex: 1,
+    fontSize: 15.5,
+    fontWeight: '600',
+    padding: 0,
+  },
+  counterText: {
+    color: MUTED,
+    fontSize: 12.5,
+    fontWeight: '600',
+  },
+  actionField: {
+    alignItems: 'center',
+    backgroundColor: FIELD_BACKGROUND,
+    borderColor: BORDER,
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: 'row',
+    height: 56,
+    justifyContent: 'space-between',
+    paddingHorizontal: 17,
+  },
+  actionFieldLeft: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flex: 1,
+    gap: 13,
+    minWidth: 0,
+  },
+  actionFieldText: {
+    color: MUTED,
+    flex: 1,
+    fontSize: 15.2,
+    fontWeight: '600',
+  },
+  labelWithInfoRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: 4,
+  },
+  intentRow: {
+    flexDirection: 'row',
+    gap: 9,
   },
   intentChip: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 253, 247, 0.84)',
-    borderColor: 'rgba(85, 99, 63, 0.21)',
+    backgroundColor: FIELD_BACKGROUND,
+    borderColor: BORDER,
     borderRadius: 999,
     borderWidth: 1,
+    flex: 1,
     flexDirection: 'row',
-    gap: 5,
-    minHeight: 34,
-    paddingHorizontal: 10,
+    gap: 7,
+    height: 48,
+    justifyContent: 'center',
   },
   intentChipActive: {
-    backgroundColor: ADD_GREEN,
-    borderColor: ADD_GREEN,
-    shadowColor: '#000',
-    shadowOffset: { height: 5, width: 0 },
-    shadowOpacity: 0.07,
-    shadowRadius: 10,
+    backgroundColor: DARK_OLIVE,
+    borderColor: DARK_OLIVE,
   },
   intentChipText: {
-    color: ADD_GREEN_DARK,
-    fontSize: 12.8,
-    fontWeight: '600',
+    color: MUTED,
+    fontSize: 13.3,
+    fontWeight: '700',
   },
   intentChipTextActive: {
     color: '#FFFFFF',
   },
+  twoColumnRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 4,
+  },
+  halfFieldBlock: {
+    flex: 1,
+    gap: 9,
+  },
+  compensationField: {
+    alignItems: 'center',
+    backgroundColor: FIELD_BACKGROUND,
+    borderColor: BORDER,
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: 'row',
+    height: 56,
+    paddingHorizontal: 14,
+  },
+  euroText: {
+    color: MUTED,
+    fontSize: 16,
+    fontWeight: '700',
+    marginRight: 10,
+  },
+  compensationInput: {
+    color: TEXT,
+    flex: 1,
+    fontSize: 14.5,
+    fontWeight: '600',
+    padding: 0,
+  },
+  perDayText: {
+    color: TEXT,
+    fontSize: 14,
+    fontWeight: '700',
+    marginLeft: 6,
+    marginRight: 4,
+  },
+  locationField: {
+    alignItems: 'center',
+    backgroundColor: FIELD_BACKGROUND,
+    borderColor: BORDER,
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 9,
+    height: 56,
+    paddingHorizontal: 14,
+  },
+  locationText: {
+    color: MUTED,
+    flex: 1,
+    fontSize: 13.8,
+    fontWeight: '650',
+  },
   feedbackCard: {
     alignItems: 'flex-start',
-    backgroundColor: 'rgba(85, 99, 63, 0.08)',
-    borderColor: 'rgba(85, 99, 63, 0.18)',
+    backgroundColor: 'rgba(238, 242, 230, 0.82)',
+    borderColor: 'rgba(65, 72, 44, 0.13)',
     borderRadius: 14,
     borderWidth: 1,
     flexDirection: 'row',
     gap: 8,
-    marginTop: 14,
-    paddingHorizontal: 13,
-    paddingVertical: 11,
+    marginTop: 16,
+    padding: 13,
   },
   feedbackText: {
-    color: ADD_GREEN_DARK,
+    color: DARK_OLIVE,
     flex: 1,
-    fontSize: 13.2,
-    fontWeight: '700',
+    fontSize: 12.8,
+    fontWeight: '650',
     lineHeight: 18,
   },
   continueButton: {
     alignItems: 'center',
-    backgroundColor: ADD_GREEN,
-    borderRadius: 17,
-    height: 60,
+    backgroundColor: DARK_OLIVE,
+    borderRadius: 18,
+    flexDirection: 'row',
+    gap: 12,
+    height: 62,
     justifyContent: 'center',
-    marginTop: 22,
-    shadowColor: '#000',
-    shadowOffset: { height: 9, width: 0 },
-    shadowOpacity: 0.075,
-    shadowRadius: 16,
-  },
-  disabledButton: {
-    opacity: 0.72,
+    marginTop: 20,
+    shadowColor: DARK_OLIVE_DARK,
+    shadowOffset: { height: 10, width: 0 },
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
   },
   continueText: {
     color: '#FFFFFF',
-    fontSize: 19,
-    fontWeight: '700',
-    letterSpacing: -0.15,
+    fontSize: 17,
+    fontWeight: '850',
+    letterSpacing: -0.12,
+  },
+  disabledButton: {
+    opacity: 0.58,
   },
   pressed: {
-    opacity: 0.78,
+    opacity: 0.8,
+    transform: [{ scale: 0.99 }],
   },
 });
