@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useMemo, useState } from 'react';
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -12,15 +13,14 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { colors, radii, spacing } from '@/constants/theme';
-
 const ADD_GREEN = '#55633F';
-const ADD_GREEN_DARK = '#405030';
+const ADD_GREEN_DARK = '#3F4E2F';
 const ADD_BACKGROUND = '#FFFDF7';
-const CARD_BACKGROUND = 'rgba(255, 253, 247, 0.86)';
-const SOFT_BACKGROUND = '#F8F3EA';
-const BORDER = 'rgba(64, 80, 48, 0.16)';
-const MUTED_TEXT = '#68706B';
+const CARD_BACKGROUND = 'rgba(255, 253, 247, 0.9)';
+const FIELD_BORDER = 'rgba(64, 80, 48, 0.13)';
+const DASHED_BORDER = 'rgba(85, 99, 63, 0.34)';
+const MUTED_TEXT = '#8B8880';
+const BODY_TEXT = '#1F241F';
 
 type ListingIntent = 'Lainaa' | 'Vuokraa' | 'Vaihda' | 'Ilmainen';
 
@@ -30,35 +30,27 @@ type IntentOption = {
 };
 
 const intentOptions: IntentOption[] = [
-  { icon: 'hand-left-outline', label: 'Lainaa' },
-  { icon: 'calendar-outline', label: 'Vuokraa' },
+  { icon: 'leaf-outline', label: 'Lainaa' },
+  { icon: 'briefcase-outline', label: 'Vuokraa' },
   { icon: 'swap-horizontal-outline', label: 'Vaihda' },
-  { icon: 'leaf-outline', label: 'Ilmainen' },
+  { icon: 'gift-outline', label: 'Ilmainen' },
 ];
 
 const categories = ['Työkalut', 'Ulkoilu', 'Matkustus', 'Elektroniikka', 'Koti'];
 const locations = ['Nykyinen sijainti', 'Koti lähellä', 'Keskusta', 'Valitse myöhemmin'];
-const availabilityOptions = ['Vapaa tänään', 'Vapaa huomenna', 'Viikonloppuna', 'Sovitaan erikseen'];
 
 export default function AddItemScreen() {
+  const router = useRouter();
   const [intent, setIntent] = useState<ListingIntent>('Lainaa');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [categoryIndex, setCategoryIndex] = useState(-1);
   const [locationIndex, setLocationIndex] = useState(-1);
-  const [availabilityIndex, setAvailabilityIndex] = useState(-1);
-  const [imagePlaceholders, setImagePlaceholders] = useState(0);
   const [feedback, setFeedback] = useState<string | null>(null);
 
   const selectedCategory = categoryIndex >= 0 ? categories[categoryIndex] : 'Valitse kategoria';
   const selectedLocation = locationIndex >= 0 ? locations[locationIndex] : 'Valitse sijainti';
-  const selectedAvailability = availabilityIndex >= 0 ? availabilityOptions[availabilityIndex] : 'Milloin tavara on saatavilla?';
-
-  const completionText = useMemo(() => {
-    const filled = [title.trim(), description.trim(), price.trim(), categoryIndex >= 0, locationIndex >= 0, availabilityIndex >= 0].filter(Boolean).length;
-    return `${filled}/6 kohtaa täytetty`;
-  }, [availabilityIndex, categoryIndex, description, locationIndex, price, title]);
 
   const cycleCategory = () => {
     setFeedback(null);
@@ -70,93 +62,62 @@ export default function AddItemScreen() {
     setLocationIndex((current) => (current + 1) % locations.length);
   };
 
-  const cycleAvailability = () => {
-    setFeedback(null);
-    setAvailabilityIndex((current) => (current + 1) % availabilityOptions.length);
-  };
-
-  const handleImagePlaceholderPress = () => {
+  const handleImagePress = () => {
     setFeedback('Kuvien lisääminen kytketään myöhemmin. Tämä on vielä käyttöliittymän testitila.');
-    setImagePlaceholders((current) => Math.min(current + 1, 3));
   };
 
-  const handlePublishPress = () => {
-    setFeedback('Julkaisua ei ole vielä kytketty. Ilmoitusta ei tallennettu tai julkaistu.');
+  const handleContinue = () => {
+    setFeedback('Jatkamista ei ole vielä kytketty. Ilmoitusta ei tallennettu tai julkaistu.');
   };
 
   return (
-    <SafeAreaView edges={['top']} style={styles.screen}>
+    <SafeAreaView edges={['top', 'bottom']} style={styles.screen}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.keyboardView}>
+        <View style={styles.topBar}>
+          <Pressable
+            accessibilityLabel="Sulje"
+            hitSlop={12}
+            onPress={() => router.replace('/(tabs)')}
+            style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}
+          >
+            <Ionicons color="#1D241D" name="close-outline" size={34} />
+          </Pressable>
+
+          <Text allowFontScaling={false} style={styles.pageTitle}>Luo ilmoitus</Text>
+          <View style={styles.headerSpacer} />
+        </View>
+
         <ScrollView
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.header}>
-            <View style={styles.titleRow}>
-              <Text allowFontScaling={false} style={styles.title}>Lisää</Text>
-              <View style={styles.titleDot} />
+          <Pressable onPress={handleImagePress} style={({ pressed }) => [styles.photoCard, pressed && styles.pressed]}>
+            <View style={styles.cameraCircle}>
+              <Ionicons color="#FFFFFF" name="camera-outline" size={43} />
+              <View style={styles.cameraPlusBadge}>
+                <Ionicons color={ADD_GREEN} name="add" size={19} />
+              </View>
             </View>
-            <Text allowFontScaling={false} style={styles.subtitle}>Luo uusi ilmoitus helposti.</Text>
-          </View>
 
-          <View style={styles.intentRow}>
-            {intentOptions.map((option) => {
-              const selected = option.label === intent;
-
-              return (
-                <Pressable
-                  key={option.label}
-                  onPress={() => {
-                    setFeedback(null);
-                    setIntent(option.label);
-                  }}
-                  style={({ pressed }) => [
-                    styles.intentCard,
-                    selected && styles.intentCardActive,
-                    pressed && styles.pressed,
-                  ]}
-                >
-                  <Ionicons color={selected ? '#FFFFFF' : ADD_GREEN_DARK} name={option.icon} size={27} />
-                  <Text allowFontScaling={false} style={[styles.intentLabel, selected && styles.intentLabelActive]}>
-                    {option.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-
-          <Pressable onPress={handleImagePlaceholderPress} style={({ pressed }) => [styles.photoCard, pressed && styles.pressed]}>
-            <Ionicons color={ADD_GREEN} name="camera-outline" size={45} />
-            <Text allowFontScaling={false} style={styles.photoTitle}>Lisää kuvat</Text>
-            <Text allowFontScaling={false} style={styles.photoSubtitle}>Napauta lisätäksesi kuvia myöhemmin.</Text>
-
-            <View style={styles.thumbnailRow}>
-              {[0, 1, 2].map((index) => (
-                <View key={index} style={[styles.thumbnail, index < imagePlaceholders && styles.thumbnailActive]}>
-                  <Ionicons
-                    color={index < imagePlaceholders ? ADD_GREEN : '#8E8A82'}
-                    name={index < imagePlaceholders ? 'checkmark-circle-outline' : 'image-outline'}
-                    size={30}
-                  />
-                </View>
-              ))}
+            <Text allowFontScaling={false} style={styles.photoTitle}>Lisää kuvia</Text>
+            <Text allowFontScaling={false} style={styles.photoSubtitle}>Lisää jopa 10 kuvaa</Text>
+            <View pointerEvents="none" style={styles.leafGhost}>
+              <Ionicons color="rgba(85, 99, 63, 0.09)" name="leaf-outline" size={98} />
             </View>
           </Pressable>
 
           <View style={styles.formStack}>
             <FormInputRow
               icon="pricetag-outline"
-              label="Ilmoituksen nimi"
+              label="Otsikko"
               onChangeText={(value) => {
                 setFeedback(null);
                 setTitle(value);
               }}
-              placeholder="Esim. Akkuporakone"
+              placeholder="Mitä jaat?"
               value={title}
             />
-
-            <FormActionRow icon="grid-outline" label="Kategoria" onPress={cycleCategory} value={selectedCategory} />
 
             <FormInputRow
               icon="document-text-outline"
@@ -166,49 +127,74 @@ export default function AddItemScreen() {
                 setFeedback(null);
                 setDescription(value);
               }}
-              placeholder="Kerro tarkemmin tavarasta"
+              placeholder="Kerro tavarasta, kunnosta ja muista oleellisista tiedoista."
               value={description}
             />
 
+            <FormActionRow icon="grid-outline" label="Kategoria" onPress={cycleCategory} value={selectedCategory} />
+
+            <View style={styles.shareMethodCard}>
+              <View style={styles.shareIconSlot}>
+                <Ionicons color={ADD_GREEN_DARK} name="swap-horizontal-outline" size={28} />
+              </View>
+              <View style={styles.shareContent}>
+                <Text allowFontScaling={false} style={styles.formLabel}>Jakotapa</Text>
+                <View style={styles.intentChips}>
+                  {intentOptions.map((option) => {
+                    const selected = option.label === intent;
+
+                    return (
+                      <Pressable
+                        key={option.label}
+                        onPress={() => {
+                          setFeedback(null);
+                          setIntent(option.label);
+                        }}
+                        style={({ pressed }) => [
+                          styles.intentChip,
+                          selected && styles.intentChipActive,
+                          pressed && styles.pressed,
+                        ]}
+                      >
+                        <Ionicons color={selected ? '#FFFFFF' : ADD_GREEN_DARK} name={option.icon} size={18} />
+                        <Text allowFontScaling={false} style={[styles.intentChipText, selected && styles.intentChipTextActive]}>
+                          {option.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            </View>
+
             <FormInputRow
-              icon="cash-outline"
-              keyboardType="default"
+              icon="pricetag-outline"
               label="Hinta / korvaus"
               onChangeText={(value) => {
                 setFeedback(null);
                 setPrice(value);
               }}
-              placeholder={intent === 'Ilmainen' ? 'Ei korvausta' : 'Esim. 5 € / pv tai vaihto'}
+              optionalText="Valinnainen"
+              placeholder={intent === 'Ilmainen' ? '0,00 €' : '0,00 €'}
               value={price}
             />
 
-            <FormActionRow icon="location-outline" label="Sijainti" onPress={cycleLocation} rightIcon="locate-outline" value={selectedLocation} />
-
-            <FormActionRow icon="calendar-clear-outline" label="Saatavuus" onPress={cycleAvailability} value={selectedAvailability} />
-          </View>
-
-          <View style={styles.tipCard}>
-            <View style={styles.tipIconCircle}>
-              <Ionicons color="#FFFFFF" name="bulb-outline" size={25} />
-            </View>
-            <Text allowFontScaling={false} style={styles.tipText}>
-              <Text style={styles.tipStrong}>Vinkki:</Text> Lisää selkeät kuvat ja kuvaus, jotta naapurit löytävät tavaran helpommin.
-            </Text>
+            <FormActionRow icon="location-outline" label="Sijainti" onPress={cycleLocation} value={selectedLocation} />
           </View>
 
           {!!feedback && (
             <View style={styles.feedbackCard}>
-              <Ionicons color={ADD_GREEN_DARK} name="information-circle-outline" size={21} />
+              <Ionicons color={ADD_GREEN_DARK} name="information-circle-outline" size={20} />
               <Text allowFontScaling={false} style={styles.feedbackText}>{feedback}</Text>
             </View>
           )}
-
-          <Text allowFontScaling={false} style={styles.completionText}>{completionText}</Text>
-
-          <Pressable onPress={handlePublishPress} style={({ pressed }) => [styles.publishButton, pressed && styles.pressed]}>
-            <Text allowFontScaling={false} style={styles.publishText}>Julkaise ilmoitus</Text>
-          </Pressable>
         </ScrollView>
+
+        <View style={styles.footer}>
+          <Pressable onPress={handleContinue} style={({ pressed }) => [styles.continueButton, pressed && styles.pressed]}>
+            <Text allowFontScaling={false} style={styles.continueText}>Jatka</Text>
+          </Pressable>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -216,26 +202,28 @@ export default function AddItemScreen() {
 
 type FormInputRowProps = {
   icon: keyof typeof Ionicons.glyphMap;
-  keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
   label: string;
   multiline?: boolean;
   onChangeText: (value: string) => void;
+  optionalText?: string;
   placeholder: string;
   value: string;
 };
 
-function FormInputRow({ icon, keyboardType = 'default', label, multiline, onChangeText, placeholder, value }: FormInputRowProps) {
+function FormInputRow({ icon, label, multiline, onChangeText, optionalText, placeholder, value }: FormInputRowProps) {
   return (
     <View style={[styles.formRow, multiline && styles.formRowMultiline]}>
-      <Ionicons color={ADD_GREEN_DARK} name={icon} size={25} />
+      <Ionicons color={ADD_GREEN_DARK} name={icon} size={27} />
       <View style={styles.formTextWrap}>
-        <Text allowFontScaling={false} style={styles.formLabel}>{label}</Text>
+        <View style={styles.labelRow}>
+          <Text allowFontScaling={false} style={styles.formLabel}>{label}</Text>
+          {!!optionalText && <Text allowFontScaling={false} style={styles.optionalText}>{optionalText}</Text>}
+        </View>
         <TextInput
-          keyboardType={keyboardType}
           multiline={multiline}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor="#9A968E"
+          placeholderTextColor={MUTED_TEXT}
           style={[styles.input, multiline && styles.multilineInput]}
           value={value}
         />
@@ -248,22 +236,23 @@ type FormActionRowProps = {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   onPress: () => void;
-  rightIcon?: keyof typeof Ionicons.glyphMap;
   value: string;
 };
 
-function FormActionRow({ icon, label, onPress, rightIcon = 'chevron-forward', value }: FormActionRowProps) {
+function FormActionRow({ icon, label, onPress, value }: FormActionRowProps) {
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.formRow, pressed && styles.pressed]}>
-      <Ionicons color={ADD_GREEN_DARK} name={icon} size={25} />
+      <Ionicons color={ADD_GREEN_DARK} name={icon} size={27} />
       <View style={styles.formTextWrap}>
         <Text allowFontScaling={false} style={styles.formLabel}>{label}</Text>
         <Text allowFontScaling={false} numberOfLines={1} style={styles.formValue}>{value}</Text>
       </View>
-      <Ionicons color={ADD_GREEN_DARK} name={rightIcon} size={22} />
+      <Ionicons color={ADD_GREEN_DARK} name="chevron-forward" size={25} />
     </Pressable>
   );
 }
+
+const serifFont = Platform.select({ ios: 'Georgia', android: 'serif', default: 'serif' });
 
 const styles = StyleSheet.create({
   screen: {
@@ -273,246 +262,263 @@ const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
   },
-  content: {
-    paddingBottom: 120,
-    paddingHorizontal: 24,
-    paddingTop: 20,
-  },
-  header: {
-    marginBottom: 24,
-  },
-  titleRow: {
+  topBar: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 8,
+    justifyContent: 'space-between',
+    paddingHorizontal: 26,
+    paddingTop: 10,
   },
-  title: {
-    color: ADD_GREEN,
-    fontSize: 42,
-    fontWeight: '800',
-    letterSpacing: -1.3,
-    lineHeight: 48,
-  },
-  titleDot: {
-    backgroundColor: ADD_GREEN,
-    borderColor: 'rgba(255, 253, 247, 0.8)',
-    borderRadius: 999,
-    borderWidth: 2,
-    height: 12,
-    marginTop: 8,
-    width: 12,
-  },
-  subtitle: {
-    color: '#667083',
-    fontSize: 17,
-    fontWeight: '500',
-    lineHeight: 24,
-    marginTop: 4,
-  },
-  intentRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 22,
-  },
-  intentCard: {
+  closeButton: {
     alignItems: 'center',
-    backgroundColor: CARD_BACKGROUND,
-    borderColor: BORDER,
-    borderRadius: 18,
+    backgroundColor: 'rgba(255, 253, 247, 0.9)',
+    borderColor: FIELD_BORDER,
+    borderRadius: 16,
     borderWidth: 1,
-    flex: 1,
-    gap: 8,
-    height: 96,
+    height: 53,
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { height: 8, width: 0 },
-    shadowOpacity: 0.04,
+    shadowOpacity: 0.06,
     shadowRadius: 16,
+    width: 53,
   },
-  intentCardActive: {
-    backgroundColor: ADD_GREEN,
-    borderColor: ADD_GREEN,
+  pageTitle: {
+    color: '#182118',
+    fontFamily: serifFont,
+    fontSize: 34,
+    fontWeight: Platform.OS === 'ios' ? '500' : '400',
+    letterSpacing: -0.55,
+    lineHeight: 42,
   },
-  intentLabel: {
-    color: '#151C18',
-    fontSize: 14.8,
-    fontWeight: '700',
+  headerSpacer: {
+    width: 53,
   },
-  intentLabelActive: {
-    color: '#FFFFFF',
+  content: {
+    paddingBottom: 132,
+    paddingHorizontal: 24,
+    paddingTop: 24,
   },
   photoCard: {
     alignItems: 'center',
-    backgroundColor: SOFT_BACKGROUND,
-    borderColor: 'rgba(64, 80, 48, 0.32)',
-    borderRadius: 22,
+    backgroundColor: 'rgba(255, 253, 247, 0.58)',
+    borderColor: DASHED_BORDER,
+    borderRadius: 20,
     borderStyle: 'dashed',
-    borderWidth: 1.3,
-    marginBottom: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 26,
+    borderWidth: 1.5,
+    height: 234,
+    justifyContent: 'center',
+    marginBottom: 28,
+    overflow: 'hidden',
+  },
+  cameraCircle: {
+    alignItems: 'center',
+    backgroundColor: ADD_GREEN,
+    borderRadius: 999,
+    height: 92,
+    justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { height: 10, width: 0 },
-    shadowOpacity: 0.04,
+    shadowOpacity: 0.09,
     shadowRadius: 18,
+    width: 92,
+  },
+  cameraPlusBadge: {
+    alignItems: 'center',
+    backgroundColor: '#FFFDF7',
+    borderRadius: 999,
+    bottom: 20,
+    height: 24,
+    justifyContent: 'center',
+    position: 'absolute',
+    right: 18,
+    width: 24,
   },
   photoTitle: {
-    color: ADD_GREEN,
-    fontSize: 22,
+    color: '#1F2A1D',
+    fontSize: 24,
     fontWeight: '800',
     letterSpacing: -0.3,
-    marginTop: 6,
+    marginTop: 20,
   },
   photoSubtitle: {
     color: MUTED_TEXT,
-    fontSize: 14.5,
+    fontSize: 17,
     fontWeight: '600',
-    lineHeight: 21,
-    marginTop: 4,
-    textAlign: 'center',
+    marginTop: 10,
   },
-  thumbnailRow: {
-    flexDirection: 'row',
-    gap: 14,
-    marginTop: 18,
-  },
-  thumbnail: {
-    alignItems: 'center',
-    borderColor: 'rgba(105, 97, 87, 0.38)',
-    borderRadius: 12,
-    borderStyle: 'dashed',
-    borderWidth: 1.2,
-    height: 78,
-    justifyContent: 'center',
-    width: 78,
-  },
-  thumbnailActive: {
-    backgroundColor: 'rgba(85, 99, 63, 0.08)',
-    borderColor: ADD_GREEN,
+  leafGhost: {
+    opacity: 0.9,
+    position: 'absolute',
+    right: 18,
+    top: 110,
+    transform: [{ rotate: '-28deg' }],
   },
   formStack: {
-    gap: 12,
+    gap: 16,
   },
   formRow: {
     alignItems: 'center',
     backgroundColor: CARD_BACKGROUND,
-    borderColor: BORDER,
-    borderRadius: 16,
+    borderColor: FIELD_BORDER,
+    borderRadius: 18,
     borderWidth: 1,
     flexDirection: 'row',
-    gap: 16,
-    minHeight: 70,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
+    gap: 18,
+    minHeight: 84,
+    paddingHorizontal: 21,
+    paddingVertical: 14,
     shadowColor: '#000',
-    shadowOffset: { height: 8, width: 0 },
-    shadowOpacity: 0.035,
-    shadowRadius: 14,
+    shadowOffset: { height: 7, width: 0 },
+    shadowOpacity: 0.025,
+    shadowRadius: 12,
   },
   formRowMultiline: {
     alignItems: 'flex-start',
-    minHeight: 92,
-    paddingTop: 16,
+    minHeight: 106,
+    paddingTop: 18,
   },
   formTextWrap: {
     flex: 1,
   },
+  labelRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
   formLabel: {
-    color: '#202620',
-    fontSize: 16,
+    color: BODY_TEXT,
+    fontSize: 19,
     fontWeight: '800',
-    letterSpacing: -0.15,
+    letterSpacing: -0.2,
+    lineHeight: 24,
   },
   formValue: {
-    color: '#908D87',
-    fontSize: 15.5,
+    color: MUTED_TEXT,
+    fontSize: 17,
     fontWeight: '600',
-    marginTop: 3,
+    marginTop: 7,
+  },
+  optionalText: {
+    color: MUTED_TEXT,
+    fontSize: 15,
+    fontWeight: '600',
   },
   input: {
-    color: '#262C27',
-    fontSize: 15.5,
+    color: BODY_TEXT,
+    fontSize: 17,
     fontWeight: '600',
-    marginTop: 1,
+    marginTop: 5,
     padding: 0,
   },
   multilineInput: {
-    lineHeight: 21,
-    minHeight: 38,
+    lineHeight: 23,
+    minHeight: 48,
     paddingTop: 2,
     textAlignVertical: 'top',
   },
-  tipCard: {
+  shareMethodCard: {
     alignItems: 'center',
-    backgroundColor: 'rgba(85, 99, 63, 0.08)',
-    borderColor: 'rgba(85, 99, 63, 0.2)',
-    borderRadius: radii.md,
+    backgroundColor: CARD_BACKGROUND,
+    borderColor: FIELD_BORDER,
+    borderRadius: 18,
     borderWidth: 1,
     flexDirection: 'row',
-    gap: 14,
-    marginTop: 18,
-    padding: spacing.lg,
+    gap: 18,
+    minHeight: 108,
+    paddingHorizontal: 21,
+    paddingVertical: 16,
+    shadowColor: '#000',
+    shadowOffset: { height: 7, width: 0 },
+    shadowOpacity: 0.025,
+    shadowRadius: 12,
   },
-  tipIconCircle: {
-    alignItems: 'center',
-    backgroundColor: ADD_GREEN,
-    borderRadius: 999,
-    height: 44,
-    justifyContent: 'center',
-    width: 44,
+  shareIconSlot: {
+    alignSelf: 'flex-start',
+    paddingTop: 3,
   },
-  tipText: {
-    color: ADD_GREEN_DARK,
+  shareContent: {
     flex: 1,
-    fontSize: 15.2,
-    fontWeight: '500',
-    lineHeight: 22,
   },
-  tipStrong: {
-    fontWeight: '800',
+  intentChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 11,
+  },
+  intentChip: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 253, 247, 0.82)',
+    borderColor: 'rgba(85, 99, 63, 0.22)',
+    borderRadius: 999,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 7,
+    minHeight: 40,
+    paddingHorizontal: 15,
+  },
+  intentChipActive: {
+    backgroundColor: ADD_GREEN,
+    borderColor: ADD_GREEN,
+    shadowColor: '#000',
+    shadowOffset: { height: 6, width: 0 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+  },
+  intentChipText: {
+    color: ADD_GREEN_DARK,
+    fontSize: 15.2,
+    fontWeight: '700',
+  },
+  intentChipTextActive: {
+    color: '#FFFFFF',
   },
   feedbackCard: {
     alignItems: 'flex-start',
-    backgroundColor: 'rgba(255, 253, 247, 0.9)',
-    borderColor: 'rgba(85, 99, 63, 0.22)',
+    backgroundColor: 'rgba(85, 99, 63, 0.08)',
+    borderColor: 'rgba(85, 99, 63, 0.18)',
     borderRadius: 14,
     borderWidth: 1,
     flexDirection: 'row',
     gap: 9,
-    marginTop: 14,
+    marginTop: 16,
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
   feedbackText: {
     color: ADD_GREEN_DARK,
     flex: 1,
-    fontSize: 13.5,
+    fontSize: 13.7,
     fontWeight: '700',
     lineHeight: 19,
   },
-  completionText: {
-    color: MUTED_TEXT,
-    fontSize: 13.2,
-    fontWeight: '700',
-    marginTop: 13,
-    textAlign: 'center',
+  footer: {
+    backgroundColor: ADD_BACKGROUND,
+    borderTopColor: 'rgba(64, 80, 48, 0.06)',
+    borderTopWidth: 1,
+    bottom: 0,
+    left: 0,
+    paddingBottom: Platform.OS === 'ios' ? 14 : 18,
+    paddingHorizontal: 24,
+    paddingTop: 14,
+    position: 'absolute',
+    right: 0,
   },
-  publishButton: {
+  continueButton: {
     alignItems: 'center',
     backgroundColor: ADD_GREEN,
     borderRadius: 18,
-    height: 62,
+    height: 66,
     justifyContent: 'center',
-    marginTop: 14,
     shadowColor: '#000',
     shadowOffset: { height: 10, width: 0 },
     shadowOpacity: 0.08,
     shadowRadius: 18,
   },
-  publishText: {
+  continueText: {
     color: '#FFFFFF',
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 21,
+    fontWeight: '800',
     letterSpacing: -0.2,
   },
   pressed: {
