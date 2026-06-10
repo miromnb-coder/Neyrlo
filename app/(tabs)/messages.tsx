@@ -8,8 +8,10 @@ import { colors } from '@/constants/theme';
 import { getConversations, type ConversationSummary } from '@/lib/messages';
 import {
   getMyListingRequests,
+  nextRequestActions,
   requestStatusLabel,
   updateListingRequestStatus,
+  type ListingRequestStatus,
   type ListingRequestSummary,
 } from '@/lib/requests';
 
@@ -56,7 +58,7 @@ export default function MessagesScreen() {
     router.push({ pathname: '/messages/[id]', params: { id: conversation.id } });
   };
 
-  const updateRequest = async (requestId: string, status: 'accepted' | 'declined' | 'completed' | 'cancelled') => {
+  const updateRequest = async (requestId: string, status: ListingRequestStatus) => {
     setUpdatingRequestId(requestId);
     setErrorMessage(null);
 
@@ -111,9 +113,7 @@ export default function MessagesScreen() {
               <View style={styles.requestList}>
                 {requests.map((request) => {
                   const isUpdating = updatingRequestId === request.id;
-                  const canOwnerRespond = request.role === 'owner' && request.status === 'pending';
-                  const canRequesterCancel = request.role === 'requester' && request.status === 'pending';
-                  const canComplete = request.role === 'owner' && request.status === 'accepted';
+                  const actions = nextRequestActions(request.status, request.role);
 
                   return (
                     <View key={request.id} style={styles.requestCard}>
@@ -130,21 +130,14 @@ export default function MessagesScreen() {
                       </View>
                       {!!request.message && <Text allowFontScaling={false} numberOfLines={2} style={styles.lastMessage}>{request.message}</Text>}
 
-                      {(canOwnerRespond || canRequesterCancel || canComplete) && (
+                      {actions.length > 0 && (
                         <View style={styles.requestActions}>
                           {isUpdating ? (
                             <ActivityIndicator color={GREEN} size="small" />
                           ) : (
-                            <>
-                              {canOwnerRespond && (
-                                <>
-                                  <RequestAction label="Hyväksy" onPress={() => void updateRequest(request.id, 'accepted')} primary />
-                                  <RequestAction label="Hylkää" onPress={() => void updateRequest(request.id, 'declined')} />
-                                </>
-                              )}
-                              {canRequesterCancel && <RequestAction label="Peru pyyntö" onPress={() => void updateRequest(request.id, 'cancelled')} />}
-                              {canComplete && <RequestAction label="Merkitse valmiiksi" onPress={() => void updateRequest(request.id, 'completed')} primary />}
-                            </>
+                            actions.map((action) => (
+                              <RequestAction key={action} label={actionLabel(action)} onPress={() => void updateRequest(request.id, action)} primary={isPrimaryAction(action)} />
+                            ))
                           )}
                         </View>
                       )}
@@ -205,6 +198,25 @@ function RequestAction({ label, onPress, primary }: { label: string; onPress: ()
       <Text allowFontScaling={false} style={[styles.requestActionText, primary && styles.requestActionTextPrimary]}>{label}</Text>
     </Pressable>
   );
+}
+
+function actionLabel(status: ListingRequestStatus) {
+  switch (status) {
+    case 'accepted': return 'Hyväksy';
+    case 'declined': return 'Hylkää';
+    case 'cancelled': return 'Peru pyyntö';
+    case 'pickup_scheduled': return 'Nouto sovittu';
+    case 'picked_up': return 'Noudettu';
+    case 'return_due': return 'Palautus tulossa';
+    case 'returned': return 'Palautettu';
+    case 'completed': return 'Valmis';
+    case 'pending':
+    default: return requestStatusLabel(status);
+  }
+}
+
+function isPrimaryAction(status: ListingRequestStatus) {
+  return status !== 'declined' && status !== 'cancelled';
 }
 
 function formatDate(value: string) {
