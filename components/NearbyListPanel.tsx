@@ -1,13 +1,17 @@
-import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
+import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import { Ionicons } from '@expo/vector-icons';
 import { useMemo } from 'react';
-import { StyleSheet, useWindowDimensions, View } from 'react-native';
+import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { Extrapolation, interpolate, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 
+import { ItemCard } from '@/components/ItemCard';
 import { NearbyMapCard } from '@/components/NearbyMapCard';
+import { colors } from '@/constants/theme';
 import type { NearbyItem } from '@/types/item';
 
 type NearbyListPanelProps = {
   items: NearbyItem[];
+  loading?: boolean;
 };
 
 function SheetHandle() {
@@ -18,7 +22,7 @@ function SheetHandle() {
   );
 }
 
-export function NearbyListPanel({ items: _items }: NearbyListPanelProps) {
+export function NearbyListPanel({ items, loading = false }: NearbyListPanelProps) {
   const { height } = useWindowDimensions();
   const animatedIndex = useSharedValue(0);
   const snapPoints = useMemo(() => ['30%', '47%', '76%'], []);
@@ -43,7 +47,7 @@ export function NearbyListPanel({ items: _items }: NearbyListPanelProps) {
   return (
     <>
       <Animated.View pointerEvents="none" style={[styles.floatingCard, { top: cardTopAtMiddleSnap }, floatingCardStyle]}>
-        <NearbyMapCard />
+        <NearbyMapCard count={items.length} radiusLabel="julkaistua ilmoitusta" />
       </Animated.View>
 
       <BottomSheet
@@ -57,7 +61,36 @@ export function NearbyListPanel({ items: _items }: NearbyListPanelProps) {
         snapPoints={snapPoints}
         style={styles.sheet}
       >
-        <BottomSheetView style={styles.emptyContent} />
+        <BottomSheetScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <View style={styles.header}>
+            <View style={styles.titleRow}>
+              <Text allowFontScaling={false} style={styles.title}>Lähellä sinua</Text>
+              <View style={styles.titleDot} />
+            </View>
+            <Text allowFontScaling={false} style={styles.subtitle}>
+              Lainaa, vuokraa, vaihda tai anna. Kaikki läheltä.
+            </Text>
+          </View>
+
+          {loading ? (
+            <View style={styles.stateCard}>
+              <Ionicons color={colors.primary} name="sync-outline" size={22} />
+              <Text allowFontScaling={false} style={styles.stateText}>Ladataan julkaistuja ilmoituksia...</Text>
+            </View>
+          ) : items.length === 0 ? (
+            <View style={styles.stateCard}>
+              <Ionicons color={colors.primary} name="cube-outline" size={24} />
+              <Text allowFontScaling={false} style={styles.stateTitle}>Ei julkaistuja ilmoituksia vielä</Text>
+              <Text allowFontScaling={false} style={styles.stateText}>Julkaise ensimmäinen ilmoitus Lisää-sivulta.</Text>
+            </View>
+          ) : (
+            <View style={styles.list}>
+              {items.map((item) => (
+                <ItemCard item={item} key={item.id} />
+              ))}
+            </View>
+          )}
+        </BottomSheetScrollView>
       </BottomSheet>
     </>
   );
@@ -92,8 +125,66 @@ const styles = StyleSheet.create({
     height: 4,
     width: 40,
   },
-  emptyContent: {
+  content: {
     backgroundColor: '#FFFDF7',
-    flex: 1,
+    paddingBottom: 118,
+    paddingHorizontal: 16,
+  },
+  header: {
+    marginBottom: 16,
+    marginTop: 4,
+  },
+  titleRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 6,
+  },
+  title: {
+    color: colors.primary,
+    fontSize: 25,
+    fontWeight: '900',
+    letterSpacing: -0.35,
+  },
+  titleDot: {
+    backgroundColor: '#6C8A64',
+    borderColor: 'rgba(255, 253, 247, 0.95)',
+    borderRadius: 5,
+    borderWidth: 1,
+    height: 10,
+    marginTop: 5,
+    width: 10,
+  },
+  subtitle: {
+    color: '#5D6770',
+    fontSize: 13.8,
+    fontWeight: '600',
+    lineHeight: 20,
+    marginTop: 5,
+  },
+  list: {
+    gap: 10,
+  },
+  stateCard: {
+    alignItems: 'center',
+    backgroundColor: '#FFFDF8',
+    borderColor: 'rgba(229, 218, 206, 0.85)',
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 6,
+    paddingHorizontal: 18,
+    paddingVertical: 22,
+  },
+  stateTitle: {
+    color: colors.text,
+    fontSize: 15.5,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  stateText: {
+    color: colors.textMuted,
+    fontSize: 13.5,
+    fontWeight: '600',
+    lineHeight: 19,
+    textAlign: 'center',
   },
 });
