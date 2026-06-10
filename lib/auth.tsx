@@ -1,9 +1,9 @@
 import { createContext, useContext, useEffect, useMemo, useState, type PropsWithChildren } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { useRouter, useSegments } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, Platform, StyleSheet, Text, View } from 'react-native';
 
-import { colors } from '@/constants/theme';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
 type AuthContextValue = {
@@ -12,6 +12,9 @@ type AuthContextValue = {
   session: Session | null;
   signOut: () => Promise<void>;
 };
+
+const SPLASH_BACKGROUND = '#55633F';
+const SPLASH_FOREGROUND = '#FFFDF7';
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
@@ -102,10 +105,11 @@ export function AuthGate({ children }: PropsWithChildren) {
 export function AuthLoadingScreen() {
   return (
     <View style={styles.loadingScreen}>
+      <StatusBar backgroundColor="transparent" style="light" translucent />
       <Text allowFontScaling={false} style={styles.logo}>
         Neyrlo
       </Text>
-      <ActivityIndicator color={colors.primary} size="small" />
+      <ActivityIndicator color={SPLASH_FOREGROUND} size="small" style={styles.spinner} />
     </View>
   );
 }
@@ -125,16 +129,21 @@ const serifFont = Platform.select({ ios: 'Georgia', android: 'serif', default: '
 const styles = StyleSheet.create({
   loadingScreen: {
     alignItems: 'center',
-    backgroundColor: colors.surface,
+    backgroundColor: SPLASH_BACKGROUND,
     flex: 1,
-    gap: 18,
-    justifyContent: 'center',
   },
   logo: {
-    color: colors.primaryDark,
+    color: SPLASH_FOREGROUND,
     fontFamily: serifFont,
-    fontSize: 44,
+    fontSize: 70,
     fontWeight: Platform.OS === 'ios' ? '500' : '400',
-    letterSpacing: -1.2,
+    letterSpacing: -1.6,
+    lineHeight: 82,
+    position: 'absolute',
+    top: '40%',
+  },
+  spinner: {
+    position: 'absolute',
+    top: '74%',
   },
 });
