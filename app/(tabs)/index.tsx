@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { FilterChips } from '@/components/FilterChips';
@@ -6,14 +6,35 @@ import { MapBackdrop } from '@/components/MapBackdrop';
 import { NearbyListPanel } from '@/components/NearbyListPanel';
 import { SearchOverlay } from '@/components/SearchOverlay';
 import { colors, spacing } from '@/constants/theme';
-import { filters, nearbyItems } from '@/data/nearbyItems';
+import { filters } from '@/data/nearbyItems';
+import { getActiveListings, listingToNearbyItem } from '@/lib/listings';
+import type { NearbyItem } from '@/types/item';
 
 export default function MapScreen() {
   const [selectedFilter, setSelectedFilter] = useState<(typeof filters)[number]>('Kaikki');
+  const [items, setItems] = useState<NearbyItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadListings = useCallback(async () => {
+    setLoading(true);
+
+    try {
+      const listings = await getActiveListings(50);
+      setItems(listings.map(listingToNearbyItem));
+    } catch {
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadListings();
+  }, [loadListings]);
 
   const visibleItems = useMemo(() => {
     if (selectedFilter === 'Kaikki') {
-      return nearbyItems;
+      return items;
     }
 
     const modeByFilter = {
@@ -23,12 +44,12 @@ export default function MapScreen() {
       Ilmainen: 'free',
     } as const;
 
-    return nearbyItems.filter((item) => item.mode === modeByFilter[selectedFilter as keyof typeof modeByFilter]);
-  }, [selectedFilter]);
+    return items.filter((item) => item.mode === modeByFilter[selectedFilter as keyof typeof modeByFilter]);
+  }, [items, selectedFilter]);
 
   return (
     <View style={styles.screen}>
-      <MapBackdrop />
+      <MapBackdrop items={visibleItems} />
 
       <View style={styles.searchWrapper}>
         <SearchOverlay />
@@ -38,7 +59,7 @@ export default function MapScreen() {
         <FilterChips selected={selectedFilter} onSelect={setSelectedFilter} />
       </View>
 
-      <NearbyListPanel items={visibleItems} />
+      <NearbyListPanel items={visibleItems} loading={loading} />
     </View>
   );
 }
