@@ -12,6 +12,10 @@ export type ProfileRecord = {
   rating_average: number;
   rating_count: number;
   is_verified: boolean;
+  notify_messages?: boolean;
+  notify_requests?: boolean;
+  notify_status_updates?: boolean;
+  notify_return_reminders?: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -45,7 +49,15 @@ export async function getCurrentProfile() {
   return data as ProfileRecord;
 }
 
-export async function updateCurrentProfile(input: { bio?: string | null; city?: string | null; displayName?: string | null }) {
+export async function updateCurrentProfile(input: {
+  bio?: string | null;
+  city?: string | null;
+  displayName?: string | null;
+  notifyMessages?: boolean;
+  notifyRequests?: boolean;
+  notifyReturnReminders?: boolean;
+  notifyStatusUpdates?: boolean;
+}) {
   const {
     data: { user },
     error: userError,
@@ -61,13 +73,19 @@ export async function updateCurrentProfile(input: { bio?: string | null; city?: 
 
   await ensureCurrentUserProfile(user);
 
+  const payload: Record<string, boolean | string | null> = {};
+
+  if ('bio' in input) payload.bio = input.bio?.trim() || null;
+  if ('city' in input) payload.city = input.city?.trim() || null;
+  if ('displayName' in input) payload.display_name = input.displayName?.trim() || null;
+  if (typeof input.notifyMessages === 'boolean') payload.notify_messages = input.notifyMessages;
+  if (typeof input.notifyRequests === 'boolean') payload.notify_requests = input.notifyRequests;
+  if (typeof input.notifyStatusUpdates === 'boolean') payload.notify_status_updates = input.notifyStatusUpdates;
+  if (typeof input.notifyReturnReminders === 'boolean') payload.notify_return_reminders = input.notifyReturnReminders;
+
   const { data, error } = await supabase
     .from('profiles')
-    .update({
-      bio: input.bio?.trim() || null,
-      city: input.city?.trim() || null,
-      display_name: input.displayName?.trim() || null,
-    })
+    .update(payload)
     .eq('id', user.id)
     .select('*')
     .single();
