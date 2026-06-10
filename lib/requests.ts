@@ -1,5 +1,5 @@
 import { formatDateRange, isDateRangeAvailable } from '@/lib/availability';
-import { createNotificationEventSafely, type NotificationEventType } from '@/lib/notificationEvents';
+import { sendNotificationEventPushSafely } from '@/lib/notificationEvents';
 import { supabase } from '@/lib/supabase';
 
 export type ListingRequestStatus =
@@ -139,8 +139,7 @@ export async function updateListingRequestStatus(requestId: string, status: List
     }
   }
 
-  const recipientId = request.owner_id === user.id ? request.requester_id : request.owner_id;
-  await createStatusNotification(request as RequestRow, user.id, recipientId, status);
+  await sendNotificationEventPushSafely({ requestId, status });
 
   return mapRequest(request as RequestRow, user.id);
 }
@@ -242,52 +241,6 @@ async function ensureRequestCanBeAccepted(requestId: string) {
 
   if (!available) {
     throw new Error('Tätä pyyntöä ei voi hyväksyä, koska valittu ajankohta ei ole enää vapaa.');
-  }
-}
-
-async function createStatusNotification(request: RequestRow, actorId: string, recipientId: string, status: ListingRequestStatus) {
-  if (recipientId === actorId) return;
-
-  const eventType = statusToNotificationType(status);
-  if (!eventType) return;
-
-  const listingTitle = request.listings?.title || 'Ilmoitus';
-
-  await createNotificationEventSafely({
-    actorId,
-    body: requestStatusDescription(status),
-    data: {
-      listingId: request.listing_id,
-      requestId: request.id,
-      status,
-    },
-    title: `${listingTitle}: ${requestStatusLabel(status)}`,
-    type: eventType,
-    userId: recipientId,
-  });
-}
-
-function statusToNotificationType(status: ListingRequestStatus): NotificationEventType | null {
-  switch (status) {
-    case 'accepted':
-      return 'request_accepted';
-    case 'declined':
-      return 'request_declined';
-    case 'cancelled':
-      return 'request_cancelled';
-    case 'pickup_scheduled':
-      return 'pickup_scheduled';
-    case 'picked_up':
-      return 'picked_up';
-    case 'return_due':
-      return 'return_due';
-    case 'returned':
-      return 'returned';
-    case 'completed':
-      return 'request_completed';
-    case 'pending':
-    default:
-      return null;
   }
 }
 
