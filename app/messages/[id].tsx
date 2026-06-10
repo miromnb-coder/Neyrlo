@@ -21,6 +21,12 @@ import {
   type ConversationDetails,
   type ConversationMessage,
 } from '@/lib/messages';
+import {
+  requestStatusDescription,
+  requestStatusLabel,
+  updateListingRequestStatus,
+  type ListingRequestStatus,
+} from '@/lib/requests';
 
 const BACKGROUND = '#FFFDF7';
 const GREEN = '#55633F';
@@ -40,6 +46,7 @@ export default function ConversationScreen() {
   const [draft, setDraft] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [eventUpdating, setEventUpdating] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
   const loadConversation = useCallback(async () => {
@@ -86,6 +93,28 @@ export default function ConversationScreen() {
     }
   };
 
+  const handleEventAction = async (status: ListingRequestStatus) => {
+    if (!conversation?.requestId || eventUpdating) {
+      return;
+    }
+
+    setEventUpdating(true);
+    setFeedback(null);
+
+    try {
+      await updateListingRequestStatus(conversation.requestId, status);
+      await loadConversation();
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : 'Tilan päivitys ei onnistunut.');
+    } finally {
+      setEventUpdating(false);
+    }
+  };
+
+  const isOwner = conversation?.ownerId === session?.user.id;
+  const isRequester = conversation?.requesterId === session?.user.id;
+  const requestStatus = conversation?.requestStatus ?? null;
+
   return (
     <SafeAreaView edges={['top', 'bottom']} style={styles.screen}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.keyboardView}>
@@ -119,6 +148,47 @@ export default function ConversationScreen() {
         ) : (
           <>
             <ScrollView contentContainerStyle={styles.messageList} showsVerticalScrollIndicator={false}>
+              {!!conversation && (
+                <View style={styles.eventCard}>
+                  <View style={styles.eventHeaderRow}>
+                    <View style={styles.eventIconCircle}>
+                      <Ionicons color="#FFFFFF" name="swap-horizontal-outline" size={19} />
+                    </View>
+                    <View style={styles.eventHeaderText}>
+                      <Text allowFontScaling={false} style={styles.eventTitle}>Lainaustapahtuma</Text>
+                      <Text allowFontScaling={false} style={styles.eventStatus}>{requestStatus ? requestStatusLabel(requestStatus) : 'Ei pyyntöä'}</Text>
+                    </View>
+                  </View>
+                  <Text allowFontScaling={false} style={styles.eventDescription}>{requestStatusDescription(requestStatus)}</Text>
+
+                  {!!conversation.requestId && (
+                    <View style={styles.eventActions}>
+                      {eventUpdating ? (
+                        <ActivityIndicator color={GREEN} size="small" />
+                      ) : (
+                        <>
+                          {isOwner && requestStatus === 'pending' && (
+                            <>
+                              <EventButton label="Hyväksy" onPress={() => void handleEventAction('accepted')} primary />
+                              <EventButton label="Hylkää" onPress={() => void handleEventAction('declined')} />
+                            </>
+                          )}
+                          {isRequester && requestStatus === 'pending' && (
+                            <EventButton label="Peru pyyntö" onPress={() => void handleEventAction('cancelled')} />
+                          )}
+                          {isOwner && requestStatus === 'accepted' && (
+                            <EventButton label="Merkitse valmiiksi" onPress={() => void handleEventAction('completed')} primary />
+                          )}
+                          {conversation.listingId && (
+                            <EventButton label="Avaa ilmoitus" onPress={() => router.push({ pathname: '/listings/[id]', params: { id: conversation.listingId } })} />
+                          )}
+                        </>
+                      )}
+                    </View>
+                  )}
+                </View>
+              )}
+
               {messages.length === 0 ? (
                 <View style={styles.emptyCard}>
                   <Ionicons color={GREEN} name="chatbubble-outline" size={28} />
@@ -177,6 +247,14 @@ export default function ConversationScreen() {
         )}
       </KeyboardAvoidingView>
     </SafeAreaView>
+  );
+}
+
+function EventButton({ label, onPress, primary }: { label: string; onPress: () => void; primary?: boolean }) {
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.eventButton, primary && styles.eventButtonPrimary, pressed && styles.pressed]}>
+      <Text allowFontScaling={false} style={[styles.eventButtonText, primary && styles.eventButtonPrimaryText]}>{label}</Text>
+    </Pressable>
   );
 }
 
@@ -255,6 +333,73 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     paddingHorizontal: 18,
     paddingTop: 18,
+  },
+  eventCard: {
+    backgroundColor: CARD,
+    borderColor: BORDER,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginBottom: 16,
+    padding: 14,
+  },
+  eventHeaderRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+  },
+  eventIconCircle: {
+    alignItems: 'center',
+    backgroundColor: GREEN,
+    borderRadius: 999,
+    height: 38,
+    justifyContent: 'center',
+    width: 38,
+  },
+  eventHeaderText: {
+    flex: 1,
+  },
+  eventTitle: {
+    color: TEXT,
+    fontSize: 15.5,
+    fontWeight: '900',
+  },
+  eventStatus: {
+    color: GREEN_DARK,
+    fontSize: 12.8,
+    fontWeight: '800',
+    marginTop: 2,
+  },
+  eventDescription: {
+    color: MUTED,
+    fontSize: 13.2,
+    fontWeight: '700',
+    lineHeight: 19,
+    marginTop: 10,
+  },
+  eventActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
+  },
+  eventButton: {
+    borderColor: BORDER,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  eventButtonPrimary: {
+    backgroundColor: GREEN,
+    borderColor: GREEN,
+  },
+  eventButtonText: {
+    color: GREEN_DARK,
+    fontSize: 12.3,
+    fontWeight: '900',
+  },
+  eventButtonPrimaryText: {
+    color: '#FFFFFF',
   },
   bubbleRow: {
     alignItems: 'flex-start',
