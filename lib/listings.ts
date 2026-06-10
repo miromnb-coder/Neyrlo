@@ -1,3 +1,5 @@
+import type { User } from '@supabase/supabase-js';
+
 import { getListingImagePublicUrl } from '@/lib/listingImages';
 import { supabase } from '@/lib/supabase';
 import type { NearbyItem } from '@/types/item';
@@ -141,12 +143,14 @@ export async function createDraftListing(input: CreateDraftListingInput) {
   } = await supabase.auth.getUser();
 
   if (userError) {
-    throw userError;
+    throw toAppError(userError, 'Kirjautuneen käyttäjän tarkistus ei onnistunut.');
   }
 
   if (!user) {
     throw new Error('Kirjaudu sisään ennen ilmoituksen luomista.');
   }
+
+  await ensureCurrentUserProfile(user);
 
   const title = input.title.trim();
 
@@ -174,7 +178,7 @@ export async function createDraftListing(input: CreateDraftListingInput) {
     .single();
 
   if (error) {
-    throw error;
+    throw toAppError(error, 'Luonnoksen tallennus ei onnistunut.');
   }
 
   return data as ListingRecord;
@@ -205,7 +209,7 @@ export async function updateDraftListing(listingId: string, input: CreateDraftLi
     .single();
 
   if (error) {
-    throw error;
+    throw toAppError(error, 'Luonnoksen päivitys ei onnistunut.');
   }
 
   return data as ListingRecord;
@@ -219,7 +223,7 @@ export async function getListingForReview(listingId: string) {
     .single();
 
   if (error) {
-    throw error;
+    throw toAppError(error, 'Ilmoituksen lataus ei onnistunut.');
   }
 
   return mapListingRow(data as ListingRow);
@@ -236,7 +240,7 @@ export async function getActiveListings(limit = 50) {
     .limit(limit);
 
   if (error) {
-    throw error;
+    throw toAppError(error, 'Julkaistujen ilmoitusten lataus ei onnistunut.');
   }
 
   return (data ?? []).map((row) => mapListingRow(row as ListingRow));
@@ -262,7 +266,7 @@ export async function publishListing(listingId: string) {
     .single();
 
   if (error) {
-    throw error;
+    throw toAppError(error, 'Julkaisu ei onnistunut.');
   }
 
   return mapListingRow(data as ListingRow);
@@ -313,6 +317,37 @@ export function listingToNearbyItem(listing: ListingWithRelations): NearbyItem {
   };
 }
 
+async function ensureCurrentUserProfile(user: User) {
+  const { data: existingProfile, error: selectError } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (selectError) {
+    throw toAppError(selectError, 'Käyttäjäprofiilin tarkistus ei onnistunut.');
+  }
+
+  if (existingProfile) {
+    return;
+  }
+
+  const displayName =
+    user.user_metadata?.display_name ||
+    user.user_metadata?.full_name ||
+    user.email?.split('@')[0] ||
+    'Neyrlo-käyttäjä';
+
+  const { error: insertError } = await supabase.from('profiles').insert({
+    display_name: displayName,
+    id: user.id,
+  });
+
+  if (insertError) {
+    throw toAppError(insertError, 'Käyttäjäprofiilin luonti ei onnistunut.');
+  }
+}
+
 function mapListingRow(row: ListingRow): ListingWithRelations {
   const images = [...(row.listing_images ?? [])].sort((a, b) => a.sort_order - b.sort_order);
 
@@ -323,4 +358,21 @@ function mapListingRow(row: ListingRow): ListingWithRelations {
     owner_name: row.profiles?.display_name || 'Neyrlo-käyttäjä',
     owner_rating: Number(row.profiles?.rating_average ?? 0),
   };
+}
+
+function toAppError(error: unknown, fallbackMessage: string) {
+  if (error instanceof Error) {
+    return error;
+  }
+
+  if (typeof error === 'object' && error !== null) {
+    const maybeError = error as { details?: string; hint?: string; message?: string };
+    const messageParts = [maybeError.message, maybeError.details, maybeError.hint].filter(Boolean);
+
+    if (messageParts.length > 0) {
+      return new Error(messageParts.join(' '));
+    }
+  }
+
+  return new Error(fallbackMessage);
 }
