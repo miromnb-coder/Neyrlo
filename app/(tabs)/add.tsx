@@ -16,11 +16,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 const ADD_GREEN = '#55633F';
 const ADD_GREEN_DARK = '#3F4E2F';
 const ADD_BACKGROUND = '#FFFDF7';
-const CARD_BACKGROUND = 'rgba(255, 253, 247, 0.9)';
-const FIELD_BORDER = 'rgba(64, 80, 48, 0.13)';
-const DASHED_BORDER = 'rgba(85, 99, 63, 0.34)';
+const CARD_BACKGROUND = 'rgba(255, 253, 247, 0.92)';
+const FIELD_BORDER = 'rgba(64, 80, 48, 0.12)';
+const DASHED_BORDER = 'rgba(85, 99, 63, 0.32)';
 const MUTED_TEXT = '#8B8880';
-const BODY_TEXT = '#1F241F';
+const BODY_TEXT = '#20251F';
 
 type ListingIntent = 'Lainaa' | 'Vuokraa' | 'Vaihda' | 'Ilmainen';
 
@@ -80,7 +80,7 @@ export default function AddItemScreen() {
             onPress={() => router.replace('/(tabs)')}
             style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}
           >
-            <Ionicons color="#1D241D" name="close-outline" size={34} />
+            <Ionicons color="#1D241D" name="close-outline" size={27} />
           </Pressable>
 
           <Text allowFontScaling={false} style={styles.pageTitle}>Luo ilmoitus</Text>
@@ -94,16 +94,16 @@ export default function AddItemScreen() {
         >
           <Pressable onPress={handleImagePress} style={({ pressed }) => [styles.photoCard, pressed && styles.pressed]}>
             <View style={styles.cameraCircle}>
-              <Ionicons color="#FFFFFF" name="camera-outline" size={43} />
+              <Ionicons color="#FFFFFF" name="camera-outline" size={35} />
               <View style={styles.cameraPlusBadge}>
-                <Ionicons color={ADD_GREEN} name="add" size={19} />
+                <Ionicons color={ADD_GREEN} name="add" size={16} />
               </View>
             </View>
 
             <Text allowFontScaling={false} style={styles.photoTitle}>Lisää kuvia</Text>
             <Text allowFontScaling={false} style={styles.photoSubtitle}>Lisää jopa 10 kuvaa</Text>
             <View pointerEvents="none" style={styles.leafGhost}>
-              <Ionicons color="rgba(85, 99, 63, 0.09)" name="leaf-outline" size={98} />
+              <Ionicons color="rgba(85, 99, 63, 0.075)" name="leaf-outline" size={82} />
             </View>
           </Pressable>
 
@@ -135,7 +135,7 @@ export default function AddItemScreen() {
 
             <View style={styles.shareMethodCard}>
               <View style={styles.shareIconSlot}>
-                <Ionicons color={ADD_GREEN_DARK} name="swap-horizontal-outline" size={28} />
+                <Ionicons color={ADD_GREEN_DARK} name="swap-horizontal-outline" size={24} />
               </View>
               <View style={styles.shareContent}>
                 <Text allowFontScaling={false} style={styles.formLabel}>Jakotapa</Text>
@@ -156,7 +156,7 @@ export default function AddItemScreen() {
                           pressed && styles.pressed,
                         ]}
                       >
-                        <Ionicons color={selected ? '#FFFFFF' : ADD_GREEN_DARK} name={option.icon} size={18} />
+                        <Ionicons color={selected ? '#FFFFFF' : ADD_GREEN_DARK} name={option.icon} size={15} />
                         <Text allowFontScaling={false} style={[styles.intentChipText, selected && styles.intentChipTextActive]}>
                           {option.label}
                         </Text>
@@ -175,7 +175,7 @@ export default function AddItemScreen() {
                 setPrice(value);
               }}
               optionalText="Valinnainen"
-              placeholder={intent === 'Ilmainen' ? '0,00 €' : '0,00 €'}
+              placeholder="0,00 €"
               value={price}
             />
 
@@ -184,17 +184,15 @@ export default function AddItemScreen() {
 
           {!!feedback && (
             <View style={styles.feedbackCard}>
-              <Ionicons color={ADD_GREEN_DARK} name="information-circle-outline" size={20} />
+              <Ionicons color={ADD_GREEN_DARK} name="information-circle-outline" size={19} />
               <Text allowFontScaling={false} style={styles.feedbackText}>{feedback}</Text>
             </View>
           )}
-        </ScrollView>
 
-        <View style={styles.footer}>
           <Pressable onPress={handleContinue} style={({ pressed }) => [styles.continueButton, pressed && styles.pressed]}>
             <Text allowFontScaling={false} style={styles.continueText}>Jatka</Text>
           </Pressable>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -213,7 +211,7 @@ type FormInputRowProps = {
 function FormInputRow({ icon, label, multiline, onChangeText, optionalText, placeholder, value }: FormInputRowProps) {
   return (
     <View style={[styles.formRow, multiline && styles.formRowMultiline]}>
-      <Ionicons color={ADD_GREEN_DARK} name={icon} size={27} />
+      <Ionicons color={ADD_GREEN_DARK} name={icon} size={23} />
       <View style={styles.formTextWrap}>
         <View style={styles.labelRow}>
           <Text allowFontScaling={false} style={styles.formLabel}>{label}</Text>
@@ -242,12 +240,12 @@ type FormActionRowProps = {
 function FormActionRow({ icon, label, onPress, value }: FormActionRowProps) {
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.formRow, pressed && styles.pressed]}>
-      <Ionicons color={ADD_GREEN_DARK} name={icon} size={27} />
+      <Ionicons color={ADD_GREEN_DARK} name={icon} size={23} />
       <View style={styles.formTextWrap}>
         <Text allowFontScaling={false} style={styles.formLabel}>{label}</Text>
         <Text allowFontScaling={false} numberOfLines={1} style={styles.formValue}>{value}</Text>
       </View>
-      <Ionicons color={ADD_GREEN_DARK} name="chevron-forward" size={25} />
+      <Ionicons color={ADD_GREEN_DARK} name="chevron-forward" size={22} />
     </Pressable>
   );
 }
@@ -267,116 +265,116 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 26,
-    paddingTop: 10,
+    paddingTop: 8,
   },
   closeButton: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 253, 247, 0.9)',
+    backgroundColor: 'rgba(255, 253, 247, 0.88)',
     borderColor: FIELD_BORDER,
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
-    height: 53,
+    height: 45,
     justifyContent: 'center',
     shadowColor: '#000',
-    shadowOffset: { height: 8, width: 0 },
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    width: 53,
+    shadowOffset: { height: 6, width: 0 },
+    shadowOpacity: 0.045,
+    shadowRadius: 12,
+    width: 45,
   },
   pageTitle: {
     color: '#182118',
     fontFamily: serifFont,
-    fontSize: 34,
+    fontSize: 30,
     fontWeight: Platform.OS === 'ios' ? '500' : '400',
-    letterSpacing: -0.55,
-    lineHeight: 42,
+    letterSpacing: -0.45,
+    lineHeight: 38,
   },
   headerSpacer: {
-    width: 53,
+    width: 45,
   },
   content: {
-    paddingBottom: 132,
+    paddingBottom: 24,
     paddingHorizontal: 24,
-    paddingTop: 24,
+    paddingTop: 20,
   },
   photoCard: {
     alignItems: 'center',
     backgroundColor: 'rgba(255, 253, 247, 0.58)',
     borderColor: DASHED_BORDER,
-    borderRadius: 20,
+    borderRadius: 19,
     borderStyle: 'dashed',
-    borderWidth: 1.5,
-    height: 234,
+    borderWidth: 1.25,
+    height: 202,
     justifyContent: 'center',
-    marginBottom: 28,
+    marginBottom: 22,
     overflow: 'hidden',
   },
   cameraCircle: {
     alignItems: 'center',
     backgroundColor: ADD_GREEN,
     borderRadius: 999,
-    height: 92,
+    height: 78,
     justifyContent: 'center',
     shadowColor: '#000',
-    shadowOffset: { height: 10, width: 0 },
-    shadowOpacity: 0.09,
-    shadowRadius: 18,
-    width: 92,
+    shadowOffset: { height: 8, width: 0 },
+    shadowOpacity: 0.075,
+    shadowRadius: 15,
+    width: 78,
   },
   cameraPlusBadge: {
     alignItems: 'center',
     backgroundColor: '#FFFDF7',
     borderRadius: 999,
-    bottom: 20,
-    height: 24,
+    bottom: 17,
+    height: 21,
     justifyContent: 'center',
     position: 'absolute',
-    right: 18,
-    width: 24,
+    right: 15,
+    width: 21,
   },
   photoTitle: {
     color: '#1F2A1D',
-    fontSize: 24,
-    fontWeight: '800',
-    letterSpacing: -0.3,
-    marginTop: 20,
+    fontSize: 20,
+    fontWeight: '760',
+    letterSpacing: -0.2,
+    marginTop: 16,
   },
   photoSubtitle: {
     color: MUTED_TEXT,
-    fontSize: 17,
-    fontWeight: '600',
-    marginTop: 10,
+    fontSize: 15,
+    fontWeight: '560',
+    marginTop: 7,
   },
   leafGhost: {
     opacity: 0.9,
     position: 'absolute',
-    right: 18,
-    top: 110,
+    right: 22,
+    top: 102,
     transform: [{ rotate: '-28deg' }],
   },
   formStack: {
-    gap: 16,
+    gap: 13,
   },
   formRow: {
     alignItems: 'center',
     backgroundColor: CARD_BACKGROUND,
     borderColor: FIELD_BORDER,
-    borderRadius: 18,
+    borderRadius: 17,
     borderWidth: 1,
     flexDirection: 'row',
-    gap: 18,
-    minHeight: 84,
-    paddingHorizontal: 21,
-    paddingVertical: 14,
+    gap: 15,
+    minHeight: 70,
+    paddingHorizontal: 18,
+    paddingVertical: 11,
     shadowColor: '#000',
-    shadowOffset: { height: 7, width: 0 },
-    shadowOpacity: 0.025,
-    shadowRadius: 12,
+    shadowOffset: { height: 6, width: 0 },
+    shadowOpacity: 0.02,
+    shadowRadius: 10,
   },
   formRowMultiline: {
     alignItems: 'flex-start',
-    minHeight: 106,
-    paddingTop: 18,
+    minHeight: 84,
+    paddingTop: 15,
   },
   formTextWrap: {
     flex: 1,
@@ -388,50 +386,50 @@ const styles = StyleSheet.create({
   },
   formLabel: {
     color: BODY_TEXT,
-    fontSize: 19,
-    fontWeight: '800',
-    letterSpacing: -0.2,
-    lineHeight: 24,
+    fontSize: 16.4,
+    fontWeight: '720',
+    letterSpacing: -0.12,
+    lineHeight: 21,
   },
   formValue: {
     color: MUTED_TEXT,
-    fontSize: 17,
-    fontWeight: '600',
-    marginTop: 7,
+    fontSize: 14.8,
+    fontWeight: '560',
+    marginTop: 4,
   },
   optionalText: {
     color: MUTED_TEXT,
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 13.3,
+    fontWeight: '560',
   },
   input: {
     color: BODY_TEXT,
-    fontSize: 17,
-    fontWeight: '600',
-    marginTop: 5,
+    fontSize: 14.8,
+    fontWeight: '560',
+    marginTop: 3,
     padding: 0,
   },
   multilineInput: {
-    lineHeight: 23,
-    minHeight: 48,
-    paddingTop: 2,
+    lineHeight: 20,
+    minHeight: 38,
+    paddingTop: 1,
     textAlignVertical: 'top',
   },
   shareMethodCard: {
     alignItems: 'center',
     backgroundColor: CARD_BACKGROUND,
     borderColor: FIELD_BORDER,
-    borderRadius: 18,
+    borderRadius: 17,
     borderWidth: 1,
     flexDirection: 'row',
-    gap: 18,
-    minHeight: 108,
-    paddingHorizontal: 21,
-    paddingVertical: 16,
+    gap: 14,
+    minHeight: 94,
+    paddingHorizontal: 18,
+    paddingVertical: 13,
     shadowColor: '#000',
-    shadowOffset: { height: 7, width: 0 },
-    shadowOpacity: 0.025,
-    shadowRadius: 12,
+    shadowOffset: { height: 6, width: 0 },
+    shadowOpacity: 0.02,
+    shadowRadius: 10,
   },
   shareIconSlot: {
     alignSelf: 'flex-start',
@@ -443,32 +441,32 @@ const styles = StyleSheet.create({
   intentChips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
-    marginTop: 11,
+    gap: 7,
+    marginTop: 9,
   },
   intentChip: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 253, 247, 0.82)',
-    borderColor: 'rgba(85, 99, 63, 0.22)',
+    backgroundColor: 'rgba(255, 253, 247, 0.84)',
+    borderColor: 'rgba(85, 99, 63, 0.21)',
     borderRadius: 999,
     borderWidth: 1,
     flexDirection: 'row',
-    gap: 7,
-    minHeight: 40,
-    paddingHorizontal: 15,
+    gap: 5,
+    minHeight: 34,
+    paddingHorizontal: 10,
   },
   intentChipActive: {
     backgroundColor: ADD_GREEN,
     borderColor: ADD_GREEN,
     shadowColor: '#000',
-    shadowOffset: { height: 6, width: 0 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
+    shadowOffset: { height: 5, width: 0 },
+    shadowOpacity: 0.07,
+    shadowRadius: 10,
   },
   intentChipText: {
     color: ADD_GREEN_DARK,
-    fontSize: 15.2,
-    fontWeight: '700',
+    fontSize: 12.8,
+    fontWeight: '650',
   },
   intentChipTextActive: {
     color: '#FFFFFF',
@@ -480,46 +478,35 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     flexDirection: 'row',
-    gap: 9,
-    marginTop: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    gap: 8,
+    marginTop: 14,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
   },
   feedbackText: {
     color: ADD_GREEN_DARK,
     flex: 1,
-    fontSize: 13.7,
+    fontSize: 13.2,
     fontWeight: '700',
-    lineHeight: 19,
-  },
-  footer: {
-    backgroundColor: ADD_BACKGROUND,
-    borderTopColor: 'rgba(64, 80, 48, 0.06)',
-    borderTopWidth: 1,
-    bottom: 0,
-    left: 0,
-    paddingBottom: Platform.OS === 'ios' ? 14 : 18,
-    paddingHorizontal: 24,
-    paddingTop: 14,
-    position: 'absolute',
-    right: 0,
+    lineHeight: 18,
   },
   continueButton: {
     alignItems: 'center',
     backgroundColor: ADD_GREEN,
-    borderRadius: 18,
-    height: 66,
+    borderRadius: 17,
+    height: 60,
     justifyContent: 'center',
+    marginTop: 22,
     shadowColor: '#000',
-    shadowOffset: { height: 10, width: 0 },
-    shadowOpacity: 0.08,
-    shadowRadius: 18,
+    shadowOffset: { height: 9, width: 0 },
+    shadowOpacity: 0.075,
+    shadowRadius: 16,
   },
   continueText: {
     color: '#FFFFFF',
-    fontSize: 21,
-    fontWeight: '800',
-    letterSpacing: -0.2,
+    fontSize: 19,
+    fontWeight: '760',
+    letterSpacing: -0.15,
   },
   pressed: {
     opacity: 0.78,
