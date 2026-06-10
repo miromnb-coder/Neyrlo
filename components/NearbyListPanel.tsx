@@ -1,8 +1,8 @@
-import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { Ionicons } from '@expo/vector-icons';
+import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
-import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { Extrapolation, interpolate, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 
 import { ItemCard } from '@/components/ItemCard';
@@ -14,6 +14,9 @@ type NearbyListPanelProps = {
   items: NearbyItem[];
   loading?: boolean;
 };
+
+const DARK_OLIVE = '#41482C';
+const SHEET_BACKGROUND = '#FFFDF7';
 
 function SheetHandle() {
   return (
@@ -27,17 +30,18 @@ export function NearbyListPanel({ items, loading = false }: NearbyListPanelProps
   const router = useRouter();
   const { height } = useWindowDimensions();
   const animatedIndex = useSharedValue(0);
-  const snapPoints = useMemo(() => ['30%', '47%', '76%'], []);
+  const snapPoints = useMemo(() => ['45%', '70%', '84%'], []);
 
   const cardTopAtMiddleSnap = height * 0.53 - 96;
   const distanceFromLowerToMiddleSnap = height * 0.17;
+  const itemCountLabel = `${items.length} ${items.length === 1 ? 'tavara' : 'tavaraa'} 5 km säteellä`;
 
   const openListing = (item: NearbyItem) => {
     router.push({ pathname: '/listings/[id]', params: { id: item.id } });
   };
 
   const floatingCardStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(animatedIndex.value, [1.12, 1.32], [1, 0], Extrapolation.CLAMP),
+    opacity: interpolate(animatedIndex.value, [0.8, 1.12], [1, 0], Extrapolation.CLAMP),
     transform: [
       {
         translateY: interpolate(
@@ -68,31 +72,33 @@ export function NearbyListPanel({ items, loading = false }: NearbyListPanelProps
         style={styles.sheet}
       >
         <BottomSheetScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <View style={styles.header}>
-            <View style={styles.titleRow}>
+          <View style={styles.headerRow}>
+            <View style={styles.headerTextBlock}>
               <Text allowFontScaling={false} style={styles.title}>Lähellä sinua</Text>
-              <View style={styles.titleDot} />
+              <Text allowFontScaling={false} style={styles.subtitle}>{itemCountLabel}</Text>
             </View>
-            <Text allowFontScaling={false} style={styles.subtitle}>
-              Lainaa, vuokraa, vaihda tai anna. Kaikki läheltä.
-            </Text>
+
+            <Pressable style={({ pressed }) => [styles.mapButton, pressed && styles.pressed]}>
+              <Text allowFontScaling={false} style={styles.mapButtonText}>Näytä kartalla</Text>
+              <Ionicons color={DARK_OLIVE} name="map-outline" size={19} />
+            </Pressable>
           </View>
 
           {loading ? (
             <View style={styles.stateCard}>
-              <Ionicons color={colors.primary} name="sync-outline" size={22} />
+              <Ionicons color={DARK_OLIVE} name="sync-outline" size={22} />
               <Text allowFontScaling={false} style={styles.stateText}>Ladataan julkaistuja ilmoituksia...</Text>
             </View>
           ) : items.length === 0 ? (
             <View style={styles.stateCard}>
-              <Ionicons color={colors.primary} name="cube-outline" size={24} />
-              <Text allowFontScaling={false} style={styles.stateTitle}>Ei julkaistuja ilmoituksia vielä</Text>
-              <Text allowFontScaling={false} style={styles.stateText}>Julkaise ensimmäinen ilmoitus Lisää-sivulta.</Text>
+              <Ionicons color={DARK_OLIVE} name="cube-outline" size={24} />
+              <Text allowFontScaling={false} style={styles.stateTitle}>Ei tavaroita tällä alueella</Text>
+              <Text allowFontScaling={false} style={styles.stateText}>Kokeile suurempaa etäisyyttä tai julkaise ensimmäinen ilmoitus.</Text>
             </View>
           ) : (
             <View style={styles.list}>
               {items.map((item) => (
-                <ItemCard item={item} key={item.id} onPress={openListing} />
+                <ItemCard item={item} key={item.id} onPress={openListing} variant="mapSheet" />
               ))}
             </View>
           )}
@@ -102,23 +108,25 @@ export function NearbyListPanel({ items, loading = false }: NearbyListPanelProps
   );
 }
 
+const serifFont = Platform.select({ ios: 'Georgia', android: 'serif', default: 'serif' });
+
 const styles = StyleSheet.create({
   sheet: {
-    shadowColor: '#000',
-    shadowOffset: { height: -7, width: 0 },
-    shadowOpacity: 0.055,
-    shadowRadius: 18,
+    shadowColor: '#1F261B',
+    shadowOffset: { height: -8, width: 0 },
+    shadowOpacity: 0.06,
+    shadowRadius: 24,
     zIndex: 20,
   },
   sheetBackground: {
-    backgroundColor: '#FFFDF7',
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
+    backgroundColor: SHEET_BACKGROUND,
+    borderTopLeftRadius: 34,
+    borderTopRightRadius: 34,
   },
   handleContainer: {
     alignItems: 'center',
-    paddingBottom: 6,
-    paddingTop: 9,
+    paddingBottom: 10,
+    paddingTop: 12,
   },
   floatingCard: {
     position: 'absolute',
@@ -126,59 +134,72 @@ const styles = StyleSheet.create({
     zIndex: 18,
   },
   handleIndicator: {
-    backgroundColor: '#CFC5BA',
-    borderRadius: 2,
-    height: 4,
-    width: 40,
+    backgroundColor: '#BDB4A9',
+    borderRadius: 999,
+    height: 5,
+    width: 48,
   },
   content: {
-    backgroundColor: '#FFFDF7',
-    paddingBottom: 118,
-    paddingHorizontal: 16,
+    backgroundColor: SHEET_BACKGROUND,
+    paddingBottom: 120,
+    paddingHorizontal: 22,
   },
-  header: {
-    marginBottom: 16,
-    marginTop: 4,
-  },
-  titleRow: {
-    alignItems: 'center',
+  headerRow: {
+    alignItems: 'flex-start',
     flexDirection: 'row',
-    gap: 6,
+    justifyContent: 'space-between',
+    marginBottom: 18,
+    paddingTop: 2,
+  },
+  headerTextBlock: {
+    flex: 1,
+    minWidth: 0,
+    paddingRight: 12,
   },
   title: {
-    color: colors.primary,
-    fontSize: 25,
-    fontWeight: '900',
-    letterSpacing: -0.35,
-  },
-  titleDot: {
-    backgroundColor: '#6C8A64',
-    borderColor: 'rgba(255, 253, 247, 0.95)',
-    borderRadius: 5,
-    borderWidth: 1,
-    height: 10,
-    marginTop: 5,
-    width: 10,
+    color: '#20251F',
+    fontFamily: serifFont,
+    fontSize: 30,
+    fontWeight: Platform.OS === 'ios' ? '500' : '700',
+    letterSpacing: -0.65,
+    lineHeight: 36,
   },
   subtitle: {
-    color: '#5D6770',
-    fontSize: 13.8,
-    fontWeight: '600',
+    color: '#686D66',
+    fontSize: 14.6,
+    fontWeight: '650',
     lineHeight: 20,
-    marginTop: 5,
+    marginTop: 1,
+  },
+  mapButton: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 253, 247, 0.92)',
+    borderColor: 'rgba(65, 72, 44, 0.13)',
+    borderRadius: 999,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
+  },
+  mapButtonText: {
+    color: '#686D66',
+    fontSize: 13.2,
+    fontWeight: '750',
   },
   list: {
-    gap: 10,
+    gap: 11,
   },
   stateCard: {
     alignItems: 'center',
     backgroundColor: '#FFFDF8',
     borderColor: 'rgba(229, 218, 206, 0.85)',
-    borderRadius: 18,
+    borderRadius: 20,
     borderWidth: 1,
     gap: 6,
     paddingHorizontal: 18,
-    paddingVertical: 22,
+    paddingVertical: 28,
   },
   stateTitle: {
     color: colors.text,
@@ -192,5 +213,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     lineHeight: 19,
     textAlign: 'center',
+  },
+  pressed: {
+    opacity: 0.78,
   },
 });
