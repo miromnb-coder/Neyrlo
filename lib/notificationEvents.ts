@@ -41,6 +41,12 @@ type NotificationEventRow = {
   created_at: string;
 };
 
+type PushDispatchInput =
+  | string
+  | { eventId: string }
+  | { messageId: string }
+  | { requestId: string; status: string };
+
 export async function createNotificationEvent(input: {
   actorId?: string | null;
   body: string;
@@ -70,7 +76,7 @@ export async function createNotificationEvent(input: {
   const event = mapNotificationEvent(data as NotificationEventRow);
 
   if (input.sendPush !== false) {
-    await sendNotificationEventPush(event.id);
+    await sendNotificationEventPush({ eventId: event.id });
   }
 
   return event;
@@ -85,13 +91,20 @@ export async function createNotificationEventSafely(input: Parameters<typeof cre
   }
 }
 
-export async function sendNotificationEventPush(eventId: string) {
-  const { error } = await supabase.functions.invoke('send-notification-event', {
-    body: { eventId },
-  });
+export async function sendNotificationEventPush(input: PushDispatchInput) {
+  const body = typeof input === 'string' ? { eventId: input } : input;
+  const { error } = await supabase.functions.invoke('send-notification-event', { body });
 
   if (error) {
     throw toAppError(error, 'Push-ilmoituksen lähetys ei onnistunut.');
+  }
+}
+
+export async function sendNotificationEventPushSafely(input: PushDispatchInput) {
+  try {
+    await sendNotificationEventPush(input);
+  } catch (error) {
+    console.warn('Push notification dispatch failed', error);
   }
 }
 
