@@ -1,5 +1,6 @@
-import { supabase } from '@/lib/supabase';
+import { formatDateRange, isDateRangeAvailable, normalizeRequestDateRange } from '@/lib/availability';
 import type { ListingRequestStatus } from '@/lib/requests';
+import { supabase } from '@/lib/supabase';
 
 export type ConversationSummary = {
   id: string;
@@ -26,6 +27,9 @@ export type ConversationDetails = {
   requesterId: string;
   requestId: string | null;
   requestStatus: ListingRequestStatus | null;
+  requestStartDate: string | null;
+  requestEndDate: string | null;
+  returnDueDate: string | null;
   otherUserName: string;
   messages: ConversationMessage[];
 };
@@ -54,6 +58,13 @@ type ConversationRow = {
   requester?: { display_name?: string | null } | null;
 };
 
+type RequestDateRow = {
+  status: ListingRequestStatus;
+  request_start_date: string | null;
+  request_end_date: string | null;
+  return_due_date: string | null;
+};
+
 const conversationSelect = `
   id,
   listing_id,
@@ -68,8 +79,9 @@ const conversationSelect = `
   messages(id, body, sender_id, created_at)
 `;
 
-export async function createContactForListing(params: { listingId: string; message: string }) {
+export async function createContactForListing(params: { endDate?: string | null; listingId: string; message: string; startDate?: string | null }) {
   const messageBody = params.message.trim();
+  const requestedDates = normalizeRequestDateRange(params.startDate, params.endDate);
 
   if (messageBody.length < 1) {
     throw new Error('Kirjoita viesti ennen lähettämistä.');
@@ -106,6 +118,14 @@ export async function createContactForListing(params: { listingId: string; messa
     throw new Error('Et voi lähettää pyyntöä omaan ilmoitukseesi.');
   }
 
+  if (requestedDates) {
+    const dateRangeIsAvailable = await isDateRangeAvailable(listing.id, requestedDates.startDate, requestedDates.endDate);
+
+    if (!dateRangeIsAvailable) {
+      throw new Error('Valittu ajankohta ei ole enää saatavilla. Kokeile toisia päiviä.');
+    }
+  }
+
   const { data: existingConversation, error: existingConversationError } = await supabase
     .from('conversations')
     .select('id, request_id')
@@ -127,6 +147,9 @@ export async function createContactForListing(params: { listingId: string; messa
         message: messageBody,
         owner_id: listing.owner_id,
         requester_id: user.id,
+        request_end_date: requestedDates?.endDate ?? null,
+        request_start_date: requestedDates?.startDate ?? null,
+        return_due_date: requestedDates?.returnDueDate ?? null,
         status: 'pending',
       })
       .select('id')
@@ -161,8 +184,12 @@ export async function createContactForListing(params: { listingId: string; messa
     conversationId = conversation.id;
   }
 
+  const firstMessageBody = requestedDates
+    ? `${messageBody}\n\nToivottu ajankohta: ${formatDateRange(requestedDates.startDate, requestedDates.endDate)}.`
+    : messageBody;
+
   const { error: messageError } = await supabase.from('messages').insert({
-    body: messageBody,
+    body: firstMessageBody,
     conversation_id: conversationId,
     sender_id: user.id,
   });
@@ -237,12 +264,12 @@ export async function getConversationDetails(conversationId: string) {
       senderId: message.sender_id,
     }));
 
-  let requestStatus: ListingRequestStatus | null = null;
+  let request: RequestDateRow | null = null;
 
   if (row.request_id) {
-    const { data: request, error: requestError } = await supabase
+    const { data: requestData, error: requestError } = await supabase
       .from('listing_requests')
-      .select('status')
+      .select('status, request_start_date, request_end_date, return_due_date')
       .eq('id', row.request_id)
       .maybeSingle();
 
@@ -250,7 +277,7 @@ export async function getConversationDetails(conversationId: string) {
       throw toAppError(requestError, 'Pyynnön tilan lataus ei onnistunut.');
     }
 
-    requestStatus = (request?.status as ListingRequestStatus | undefined) ?? null;
+    request = (requestData as RequestDateRow | null) ?? null;
   }
 
   return {
@@ -261,8 +288,11 @@ export async function getConversationDetails(conversationId: string) {
     otherUserName: summary.otherUserName,
     ownerId: row.owner_id,
     requesterId: row.requester_id,
+    requestEndDate: request?.request_end_date ?? null,
     requestId: row.request_id,
-    requestStatus,
+    requestStartDate: request?.request_start_date ?? null,
+    requestStatus: request?.status ?? null,
+    returnDueDate: request?.return_due_date ?? null,
   } satisfies ConversationDetails;
 }
 
