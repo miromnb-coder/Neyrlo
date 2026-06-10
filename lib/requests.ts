@@ -1,7 +1,17 @@
 import { formatDateRange, isDateRangeAvailable } from '@/lib/availability';
+import { createNotificationEventSafely, type NotificationEventType } from '@/lib/notificationEvents';
 import { supabase } from '@/lib/supabase';
 
-export type ListingRequestStatus = 'pending' | 'accepted' | 'declined' | 'cancelled' | 'completed';
+export type ListingRequestStatus =
+  | 'pending'
+  | 'accepted'
+  | 'declined'
+  | 'cancelled'
+  | 'pickup_scheduled'
+  | 'picked_up'
+  | 'return_due'
+  | 'returned'
+  | 'completed';
 
 export type ListingRequestSummary = {
   id: string;
@@ -79,6 +89,19 @@ export async function getMyListingRequests() {
 }
 
 export async function updateListingRequestStatus(requestId: string, status: ListingRequestStatus) {
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError) {
+    throw toAppError(userError, 'Kirjautuneen käyttäjän tarkistus ei onnistunut.');
+  }
+
+  if (!user) {
+    throw new Error('Kirjaudu sisään päivittääksesi pyynnön tilan.');
+  }
+
   if (status === 'accepted') {
     await ensureRequestCanBeAccepted(requestId);
   }
@@ -116,11 +139,10 @@ export async function updateListingRequestStatus(requestId: string, status: List
     }
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const recipientId = request.owner_id === user.id ? request.requester_id : request.owner_id;
+  await createStatusNotification(request as RequestRow, user.id, recipientId, status);
 
-  return mapRequest(request as RequestRow, user?.id ?? request.owner_id);
+  return mapRequest(request as RequestRow, user.id);
 }
 
 export function requestStatusLabel(status: ListingRequestStatus) {
@@ -131,6 +153,14 @@ export function requestStatusLabel(status: ListingRequestStatus) {
       return 'Hylätty';
     case 'cancelled':
       return 'Peruttu';
+    case 'pickup_scheduled':
+      return 'Nouto sovittu';
+    case 'picked_up':
+      return 'Noudettu';
+    case 'return_due':
+      return 'Palautus tulossa';
+    case 'returned':
+      return 'Palautettu';
     case 'completed':
       return 'Valmis';
     case 'pending':
@@ -149,10 +179,47 @@ export function requestStatusDescription(status: ListingRequestStatus | null) {
       return 'Pyyntö hylättiin.';
     case 'cancelled':
       return 'Pyyntö peruttiin.';
+    case 'pickup_scheduled':
+      return 'Nouto on sovittu. Varmistakaa aika ja paikka viesteissä.';
+    case 'picked_up':
+      return 'Tavara on luovutettu lainaajalle.';
+    case 'return_due':
+      return 'Palautuspäivä lähestyy. Sopikaa palautuksen yksityiskohdat.';
+    case 'returned':
+      return 'Tavara on merkitty palautetuksi. Omistaja voi viimeistellä tapahtuman.';
     case 'completed':
       return 'Tapahtuma on merkitty valmiiksi. Nyt voitte jättää arvion.';
     default:
       return 'Lainaustapahtumaa ei ole vielä aloitettu.';
+  }
+}
+
+export function nextRequestActions(status: ListingRequestStatus | null, role: 'owner' | 'requester') {
+  if (role === 'owner') {
+    switch (status) {
+      case 'pending':
+        return ['accepted', 'declined'] as ListingRequestStatus[];
+      case 'accepted':
+        return ['pickup_scheduled'] as ListingRequestStatus[];
+      case 'pickup_scheduled':
+        return ['picked_up'] as ListingRequestStatus[];
+      case 'picked_up':
+        return ['return_due'] as ListingRequestStatus[];
+      case 'returned':
+        return ['completed'] as ListingRequestStatus[];
+      default:
+        return [] as ListingRequestStatus[];
+    }
+  }
+
+  switch (status) {
+    case 'pending':
+      return ['cancelled'] as ListingRequestStatus[];
+    case 'picked_up':
+    case 'return_due':
+      return ['returned'] as ListingRequestStatus[];
+    default:
+      return [] as ListingRequestStatus[];
   }
 }
 
@@ -175,6 +242,52 @@ async function ensureRequestCanBeAccepted(requestId: string) {
 
   if (!available) {
     throw new Error('Tätä pyyntöä ei voi hyväksyä, koska valittu ajankohta ei ole enää vapaa.');
+  }
+}
+
+async function createStatusNotification(request: RequestRow, actorId: string, recipientId: string, status: ListingRequestStatus) {
+  if (recipientId === actorId) return;
+
+  const eventType = statusToNotificationType(status);
+  if (!eventType) return;
+
+  const listingTitle = request.listings?.title || 'Ilmoitus';
+
+  await createNotificationEventSafely({
+    actorId,
+    body: requestStatusDescription(status),
+    data: {
+      listingId: request.listing_id,
+      requestId: request.id,
+      status,
+    },
+    title: `${listingTitle}: ${requestStatusLabel(status)}`,
+    type: eventType,
+    userId: recipientId,
+  });
+}
+
+function statusToNotificationType(status: ListingRequestStatus): NotificationEventType | null {
+  switch (status) {
+    case 'accepted':
+      return 'request_accepted';
+    case 'declined':
+      return 'request_declined';
+    case 'cancelled':
+      return 'request_cancelled';
+    case 'pickup_scheduled':
+      return 'pickup_scheduled';
+    case 'picked_up':
+      return 'picked_up';
+    case 'return_due':
+      return 'return_due';
+    case 'returned':
+      return 'returned';
+    case 'completed':
+      return 'request_completed';
+    case 'pending':
+    default:
+      return null;
   }
 }
 
