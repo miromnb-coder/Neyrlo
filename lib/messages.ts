@@ -1,4 +1,5 @@
 import { formatDateRange, isDateRangeAvailable, normalizeRequestDateRange } from '@/lib/availability';
+import { sendNotificationEventPushSafely } from '@/lib/notificationEvents';
 import type { ListingRequestStatus } from '@/lib/requests';
 import { supabase } from '@/lib/supabase';
 
@@ -138,6 +139,7 @@ export async function createContactForListing(params: { endDate?: string | null;
   }
 
   let requestId = existingConversation?.request_id ?? null;
+  let createdNewRequest = false;
 
   if (!requestId) {
     const { data: request, error: requestError } = await supabase
@@ -160,6 +162,7 @@ export async function createContactForListing(params: { endDate?: string | null;
     }
 
     requestId = request.id;
+    createdNewRequest = true;
   } else if (requestedDates) {
     const { data: existingRequest, error: existingRequestError } = await supabase
       .from('listing_requests')
@@ -214,14 +217,24 @@ export async function createContactForListing(params: { endDate?: string | null;
     ? `${messageBody}\n\nToivottu ajankohta: ${formatDateRange(requestedDates.startDate, requestedDates.endDate)}.`
     : messageBody;
 
-  const { error: messageError } = await supabase.from('messages').insert({
-    body: firstMessageBody,
-    conversation_id: conversationId,
-    sender_id: user.id,
-  });
+  const { data: message, error: messageError } = await supabase
+    .from('messages')
+    .insert({
+      body: firstMessageBody,
+      conversation_id: conversationId,
+      sender_id: user.id,
+    })
+    .select('id')
+    .single();
 
   if (messageError) {
     throw toAppError(messageError, 'Viestin lähetys ei onnistunut.');
+  }
+
+  if (createdNewRequest && requestId) {
+    await sendNotificationEventPushSafely({ requestId, status: 'pending' });
+  } else if (message?.id) {
+    await sendNotificationEventPushSafely({ messageId: message.id });
   }
 
   return conversationId;
@@ -355,6 +368,8 @@ export async function sendMessage(conversationId: string, body: string) {
   if (error) {
     throw toAppError(error, 'Viestin lähetys ei onnistunut.');
   }
+
+  await sendNotificationEventPushSafely({ messageId: data.id });
 
   return {
     body: data.body,
