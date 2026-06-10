@@ -3,15 +3,20 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '@/constants/theme';
 
-export function NearbyMapCard() {
+type NearbyMapCardProps = {
+  count: number;
+  radiusLabel?: string;
+};
+
+export function NearbyMapCard({ count, radiusLabel = 'lähelläsi' }: NearbyMapCardProps) {
   return (
     <View style={styles.card}>
       <View style={styles.titleRow}>
         <Text allowFontScaling={false} style={styles.title}>Lähellä sinua</Text>
         <Ionicons color={colors.primary} name="location-outline" size={13} />
       </View>
-      <Text allowFontScaling={false} style={styles.text}>14 tavaraa</Text>
-      <Text allowFontScaling={false} style={styles.text}>2 km säteellä</Text>
+      <Text allowFontScaling={false} style={styles.text}>{count} tavaraa</Text>
+      <Text allowFontScaling={false} style={styles.text}>{radiusLabel}</Text>
     </View>
   );
 }
