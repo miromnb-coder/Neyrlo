@@ -50,15 +50,18 @@ export default function MapScreen() {
 
   const visibleItems = useMemo(() => {
     const modeByFilter = {
-      Lainaa: 'borrow',
-      Vuokraa: 'rent',
+      Laina: 'borrow',
+      Vuokra: 'rent',
       Vaihda: 'swap',
-      Ilmainen: 'free',
+      Jaa: 'free',
     } as const;
     const normalizedSearch = searchQuery.trim().toLowerCase();
 
     return items.filter((item) => {
-      const matchesFilter = selectedFilter === 'Kaikki' || item.mode === modeByFilter[selectedFilter as keyof typeof modeByFilter];
+      const matchesFilter =
+        selectedFilter === 'Kaikki' ||
+        selectedFilter === 'Kestävä' ||
+        item.mode === modeByFilter[selectedFilter as keyof typeof modeByFilter];
       const matchesSearch =
         normalizedSearch.length === 0 ||
         item.title.toLowerCase().includes(normalizedSearch) ||
@@ -101,7 +104,7 @@ const styles = StyleSheet.create({
     left: 0,
     position: 'absolute',
     right: 0,
-    top: 120,
+    top: 122,
     zIndex: 29,
   },
 });
