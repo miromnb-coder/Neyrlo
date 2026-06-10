@@ -4,6 +4,9 @@ import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '@/constants/theme';
 
+const INACTIVE = '#686D66';
+const BAR_BACKGROUND = 'rgba(255, 253, 247, 0.97)';
+
 const tabItems = {
   index: {
     activeIcon: 'map',
@@ -21,12 +24,12 @@ const tabItems = {
     label: 'Lisää',
   },
   messages: {
-    activeIcon: 'chatbubble',
+    activeIcon: 'chatbubble-outline',
     inactiveIcon: 'chatbubble-outline',
     label: 'Viestit',
   },
   profile: {
-    activeIcon: 'person',
+    activeIcon: 'person-outline',
     inactiveIcon: 'person-outline',
     label: 'Profiili',
   },
@@ -57,7 +60,7 @@ function NeyrloTabBar({ descriptors, navigation, state }: TabBarProps) {
           const options = descriptors[route.key]?.options;
           const label = config?.label ?? options?.title ?? route.name;
           const iconName = (focused ? config?.activeIcon : config?.inactiveIcon) ?? 'ellipse-outline';
-          const color = focused ? colors.primary : '#686D66';
+          const color = focused && !isAdd ? colors.primary : INACTIVE;
 
           const onPress = () => {
             const event = navigation.emit({
@@ -80,15 +83,15 @@ function NeyrloTabBar({ descriptors, navigation, state }: TabBarProps) {
               style={({ pressed }) => [styles.tabButton, isAdd && styles.addTabButton, pressed && styles.tabButtonPressed]}
             >
               {isAdd ? (
-                <View style={[styles.addCircle, focused && styles.addCircleActive]}>
-                  <Ionicons color="#FFFFFF" name="add" size={31} />
+                <View style={styles.addCircle}>
+                  <Ionicons color="#FFFFFF" name="add" size={27} />
                 </View>
               ) : (
                 <View style={styles.iconSlot}>
-                  <Ionicons color={color} name={iconName as keyof typeof Ionicons.glyphMap} size={27} />
+                  <Ionicons color={color} name={iconName as keyof typeof Ionicons.glyphMap} size={25} />
                 </View>
               )}
-              <Text allowFontScaling={false} style={[styles.tabLabel, focused && styles.activeTabLabel, isAdd && styles.addTabLabel]}>
+              <Text allowFontScaling={false} style={[styles.tabLabel, focused && !isAdd && styles.activeTabLabel, isAdd && styles.addTabLabel]}>
                 {label}
               </Text>
             </Pressable>
@@ -120,38 +123,37 @@ const styles = StyleSheet.create({
   tabBarWrap: {
     bottom: 0,
     left: 0,
-    paddingHorizontal: 0,
     position: 'absolute',
     right: 0,
   },
   tabBar: {
     alignItems: 'flex-start',
-    backgroundColor: 'rgba(255, 253, 247, 0.97)',
+    backgroundColor: BAR_BACKGROUND,
     borderColor: 'rgba(64, 80, 48, 0.10)',
     borderTopLeftRadius: 34,
     borderTopRightRadius: 34,
     borderWidth: 1,
     borderBottomWidth: 0,
-    elevation: 18,
+    elevation: 16,
     flexDirection: 'row',
-    height: Platform.OS === 'ios' ? 98 : 90,
+    height: Platform.OS === 'ios' ? 91 : 84,
     justifyContent: 'space-between',
-    paddingBottom: Platform.OS === 'ios' ? 20 : 14,
-    paddingHorizontal: 10,
-    paddingTop: 16,
+    paddingBottom: Platform.OS === 'ios' ? 18 : 12,
+    paddingHorizontal: 8,
+    paddingTop: 14,
     shadowColor: '#1F261B',
-    shadowOffset: { height: -8, width: 0 },
-    shadowOpacity: 0.08,
-    shadowRadius: 22,
+    shadowOffset: { height: -7, width: 0 },
+    shadowOpacity: 0.075,
+    shadowRadius: 20,
   },
   tabButton: {
     alignItems: 'center',
     flex: 1,
     justifyContent: 'flex-start',
-    minHeight: 62,
+    minHeight: 58,
   },
   addTabButton: {
-    marginTop: -30,
+    marginTop: -24,
   },
   tabButtonPressed: {
     opacity: 0.76,
@@ -160,33 +162,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     height: 29,
     justifyContent: 'center',
-    marginBottom: 5,
+    marginBottom: 4,
   },
   addCircle: {
     alignItems: 'center',
     backgroundColor: colors.primary,
-    borderColor: 'rgba(255, 253, 247, 0.96)',
+    borderColor: 'rgba(255, 253, 247, 0.98)',
     borderRadius: 999,
     borderWidth: 3,
     elevation: 10,
-    height: 64,
+    height: 56,
     justifyContent: 'center',
     marginBottom: 2,
     shadowColor: '#1F261B',
-    shadowOffset: { height: 7, width: 0 },
-    shadowOpacity: 0.22,
-    shadowRadius: 13,
-    width: 64,
-  },
-  addCircleActive: {
-    backgroundColor: '#3F4E2F',
+    shadowOffset: { height: 6, width: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    width: 56,
   },
   tabLabel: {
-    color: '#686D66',
-    fontSize: 12.8,
+    color: INACTIVE,
+    fontSize: 12.2,
     fontWeight: '700',
-    letterSpacing: -0.08,
-    lineHeight: 16,
+    letterSpacing: -0.06,
+    lineHeight: 15,
   },
   addTabLabel: {
     marginTop: -1,
