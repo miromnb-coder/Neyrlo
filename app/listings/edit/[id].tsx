@@ -319,6 +319,8 @@ export default function EditListingScreen() {
 
               <FormInput label="Hinta / korvaus" onChangeText={setPrice} placeholder="0,00 €" value={price} />
               <FormAction label="Sijainti" loading={gettingLocation} onPress={openLocationMenu} value={locationLabel} />
+              {!!listing && <FormAction label="Kuvat" onPress={() => router.push({ pathname: '/listings/images/[id]', params: { id: listing.id } })} value="Poista, lisää ja järjestä kuvia" />}
+              {!!listing && <FormAction label="Saatavuus" onPress={() => router.push({ pathname: '/listings/availability/[id]', params: { id: listing.id } })} value="Hallitse vapaita ja suljettuja päiviä" />}
             </View>
 
             {!!feedback && (
