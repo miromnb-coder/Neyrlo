@@ -167,9 +167,7 @@ const styles = StyleSheet.create({
   addCircle: {
     alignItems: 'center',
     backgroundColor: DARK_OLIVE,
-    borderColor: 'rgba(255, 253, 247, 0.98)',
     borderRadius: 999,
-    borderWidth: 3,
     elevation: 10,
     height: 56,
     justifyContent: 'center',
