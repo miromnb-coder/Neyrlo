@@ -2,11 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
-import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import Animated, { Extrapolation, interpolate, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ItemCard } from '@/components/ItemCard';
-import { NearbyMapCard } from '@/components/NearbyMapCard';
 import { colors } from '@/constants/theme';
 import type { NearbyItem } from '@/types/item';
 
@@ -28,83 +26,57 @@ function SheetHandle() {
 
 export function NearbyListPanel({ items, loading = false }: NearbyListPanelProps) {
   const router = useRouter();
-  const { height } = useWindowDimensions();
-  const animatedIndex = useSharedValue(0);
-  const snapPoints = useMemo(() => ['45%', '70%', '84%'], []);
-
-  const cardTopAtMiddleSnap = height * 0.53 - 96;
-  const distanceFromLowerToMiddleSnap = height * 0.17;
+  const snapPoints = useMemo(() => ['43%', '68%', '84%'], []);
   const itemCountLabel = `${items.length} ${items.length === 1 ? 'tavara' : 'tavaraa'} 5 km säteellä`;
 
   const openListing = (item: NearbyItem) => {
     router.push({ pathname: '/listings/[id]', params: { id: item.id } });
   };
 
-  const floatingCardStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(animatedIndex.value, [0.8, 1.12], [1, 0], Extrapolation.CLAMP),
-    transform: [
-      {
-        translateY: interpolate(
-          animatedIndex.value,
-          [0, 1, 1.32],
-          [distanceFromLowerToMiddleSnap, 0, 0],
-          Extrapolation.CLAMP,
-        ),
-      },
-    ],
-  }));
-
   return (
-    <>
-      <Animated.View pointerEvents="none" style={[styles.floatingCard, { top: cardTopAtMiddleSnap }, floatingCardStyle]}>
-        <NearbyMapCard count={items.length} radiusLabel="julkaistua ilmoitusta" />
-      </Animated.View>
-
-      <BottomSheet
-        animatedIndex={animatedIndex}
-        backgroundStyle={styles.sheetBackground}
-        enableDynamicSizing={false}
-        enablePanDownToClose={false}
-        handleComponent={SheetHandle}
-        index={0}
-        overDragResistanceFactor={3}
-        snapPoints={snapPoints}
-        style={styles.sheet}
-      >
-        <BottomSheetScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <View style={styles.headerRow}>
-            <View style={styles.headerTextBlock}>
-              <Text allowFontScaling={false} style={styles.title}>Lähellä sinua</Text>
-              <Text allowFontScaling={false} style={styles.subtitle}>{itemCountLabel}</Text>
-            </View>
-
-            <Pressable style={({ pressed }) => [styles.mapButton, pressed && styles.pressed]}>
-              <Text allowFontScaling={false} style={styles.mapButtonText}>Näytä kartalla</Text>
-              <Ionicons color={DARK_OLIVE} name="map-outline" size={19} />
-            </Pressable>
+    <BottomSheet
+      backgroundStyle={styles.sheetBackground}
+      enableDynamicSizing={false}
+      enablePanDownToClose={false}
+      handleComponent={SheetHandle}
+      index={0}
+      overDragResistanceFactor={3}
+      snapPoints={snapPoints}
+      style={styles.sheet}
+    >
+      <BottomSheetScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.headerRow}>
+          <View style={styles.headerTextBlock}>
+            <Text allowFontScaling={false} numberOfLines={1} style={styles.title}>Lähellä sinua</Text>
+            <Text allowFontScaling={false} style={styles.subtitle}>{itemCountLabel}</Text>
           </View>
 
-          {loading ? (
-            <View style={styles.stateCard}>
-              <Ionicons color={DARK_OLIVE} name="sync-outline" size={22} />
-              <Text allowFontScaling={false} style={styles.stateText}>Ladataan julkaistuja ilmoituksia...</Text>
-            </View>
-          ) : items.length === 0 ? (
-            <View style={styles.stateCard}>
-              <Ionicons color={DARK_OLIVE} name="cube-outline" size={24} />
-              <Text allowFontScaling={false} style={styles.stateTitle}>Ei tavaroita tällä alueella</Text>
-              <Text allowFontScaling={false} style={styles.stateText}>Kokeile suurempaa etäisyyttä tai julkaise ensimmäinen ilmoitus.</Text>
-            </View>
-          ) : (
-            <View style={styles.list}>
-              {items.map((item) => (
-                <ItemCard item={item} key={item.id} onPress={openListing} variant="mapSheet" />
-              ))}
-            </View>
-          )}
-        </BottomSheetScrollView>
-      </BottomSheet>
-    </>
+          <Pressable style={({ pressed }) => [styles.mapButton, pressed && styles.pressed]}>
+            <Text allowFontScaling={false} style={styles.mapButtonText}>Näytä kartalla</Text>
+            <Ionicons color={DARK_OLIVE} name="map-outline" size={17} />
+          </Pressable>
+        </View>
+
+        {loading ? (
+          <View style={styles.stateCard}>
+            <Ionicons color={DARK_OLIVE} name="sync-outline" size={22} />
+            <Text allowFontScaling={false} style={styles.stateText}>Ladataan julkaistuja ilmoituksia...</Text>
+          </View>
+        ) : items.length === 0 ? (
+          <View style={styles.stateCard}>
+            <Ionicons color={DARK_OLIVE} name="cube-outline" size={24} />
+            <Text allowFontScaling={false} style={styles.stateTitle}>Ei tavaroita tällä alueella</Text>
+            <Text allowFontScaling={false} style={styles.stateText}>Kokeile suurempaa etäisyyttä tai julkaise ensimmäinen ilmoitus.</Text>
+          </View>
+        ) : (
+          <View style={styles.list}>
+            {items.map((item) => (
+              <ItemCard item={item} key={item.id} onPress={openListing} variant="mapSheet" />
+            ))}
+          </View>
+        )}
+      </BottomSheetScrollView>
+    </BottomSheet>
   );
 }
 
@@ -128,11 +100,6 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     paddingTop: 12,
   },
-  floatingCard: {
-    position: 'absolute',
-    right: 20,
-    zIndex: 18,
-  },
   handleIndicator: {
     backgroundColor: '#BDB4A9',
     borderRadius: 999,
@@ -154,15 +121,15 @@ const styles = StyleSheet.create({
   headerTextBlock: {
     flex: 1,
     minWidth: 0,
-    paddingRight: 12,
+    paddingRight: 10,
   },
   title: {
     color: '#20251F',
     fontFamily: serifFont,
-    fontSize: 30,
+    fontSize: 28,
     fontWeight: Platform.OS === 'ios' ? '500' : '700',
-    letterSpacing: -0.65,
-    lineHeight: 36,
+    letterSpacing: -0.62,
+    lineHeight: 34,
   },
   subtitle: {
     color: '#686D66',
@@ -178,14 +145,14 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
     flexDirection: 'row',
-    gap: 8,
+    gap: 7,
     marginTop: 8,
-    paddingHorizontal: 13,
-    paddingVertical: 9,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
   mapButtonText: {
     color: '#686D66',
-    fontSize: 13.2,
+    fontSize: 12.8,
     fontWeight: '750',
   },
   list: {
