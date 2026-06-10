@@ -1,5 +1,6 @@
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { Extrapolation, interpolate, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
@@ -23,12 +24,17 @@ function SheetHandle() {
 }
 
 export function NearbyListPanel({ items, loading = false }: NearbyListPanelProps) {
+  const router = useRouter();
   const { height } = useWindowDimensions();
   const animatedIndex = useSharedValue(0);
   const snapPoints = useMemo(() => ['30%', '47%', '76%'], []);
 
   const cardTopAtMiddleSnap = height * 0.53 - 96;
   const distanceFromLowerToMiddleSnap = height * 0.17;
+
+  const openListing = (item: NearbyItem) => {
+    router.push({ pathname: '/listings/[id]', params: { id: item.id } });
+  };
 
   const floatingCardStyle = useAnimatedStyle(() => ({
     opacity: interpolate(animatedIndex.value, [1.12, 1.32], [1, 0], Extrapolation.CLAMP),
@@ -86,7 +92,7 @@ export function NearbyListPanel({ items, loading = false }: NearbyListPanelProps
           ) : (
             <View style={styles.list}>
               {items.map((item) => (
-                <ItemCard item={item} key={item.id} />
+                <ItemCard item={item} key={item.id} onPress={openListing} />
               ))}
             </View>
           )}
