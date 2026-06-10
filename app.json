@@ -14,6 +14,19 @@
         {
           "backgroundColor": "#55633F"
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Neyrlo käyttää sijaintiasi näyttääkseen lähellä olevia tavaroita. Tarkkaa noutopaikkaa ei näytetä muille."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Neyrlo käyttää kuviasi, jotta voit lisätä tavaran kuvat ilmoitukseen.",
+          "cameraPermission": "Neyrlo käyttää kameraa, jotta voit ottaa kuvia tavarasta ilmoitusta varten."
+        }
       ]
     ],
     "ios": {
