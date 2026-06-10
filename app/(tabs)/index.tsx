@@ -70,7 +70,7 @@ export default function MapScreen() {
 
   return (
     <View style={styles.screen}>
-      <MapBackdrop items={visibleItems} />
+      <MapBackdrop items={visibleItems} userLocation={userLocation} />
 
       <View style={styles.searchWrapper}>
         <SearchOverlay onChangeText={setSearchQuery} value={searchQuery} />
