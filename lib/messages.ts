@@ -160,6 +160,32 @@ export async function createContactForListing(params: { endDate?: string | null;
     }
 
     requestId = request.id;
+  } else if (requestedDates) {
+    const { data: existingRequest, error: existingRequestError } = await supabase
+      .from('listing_requests')
+      .select('status')
+      .eq('id', requestId)
+      .maybeSingle();
+
+    if (existingRequestError) {
+      throw toAppError(existingRequestError, 'Aiemman pyynnön tarkistus ei onnistunut.');
+    }
+
+    if (existingRequest?.status === 'pending') {
+      const { error: updateRequestError } = await supabase
+        .from('listing_requests')
+        .update({
+          message: messageBody,
+          request_end_date: requestedDates.endDate,
+          request_start_date: requestedDates.startDate,
+          return_due_date: requestedDates.returnDueDate,
+        })
+        .eq('id', requestId);
+
+      if (updateRequestError) {
+        throw toAppError(updateRequestError, 'Pyynnön päivämäärien päivitys ei onnistunut.');
+      }
+    }
   }
 
   let conversationId = existingConversation?.id;
