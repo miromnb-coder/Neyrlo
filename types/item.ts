@@ -11,4 +11,8 @@ export type NearbyItem = {
   priceLabel: string;
   imageUrl: string;
   accentColor: string;
+  categoryId?: string;
+  latitude?: number;
+  locationLabel?: string;
+  longitude?: number;
 };
