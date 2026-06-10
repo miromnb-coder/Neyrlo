@@ -59,12 +59,12 @@ export function NearbyListPanel({ items, loading = false }: NearbyListPanelProps
 
         {loading ? (
           <View style={styles.stateCard}>
-            <Ionicons color={DARK_OLIVE} name="sync-outline" size={22} />
+            <Ionicons color={DARK_OLIVE} name="sync-outline" size={20} />
             <Text allowFontScaling={false} style={styles.stateText}>Ladataan julkaistuja ilmoituksia...</Text>
           </View>
         ) : items.length === 0 ? (
           <View style={styles.stateCard}>
-            <Ionicons color={DARK_OLIVE} name="cube-outline" size={24} />
+            <Ionicons color={DARK_OLIVE} name="cube-outline" size={21} />
             <Text allowFontScaling={false} style={styles.stateTitle}>Ei tavaroita tällä alueella</Text>
             <Text allowFontScaling={false} style={styles.stateText}>Kokeile suurempaa etäisyyttä tai julkaise ensimmäinen ilmoitus.</Text>
           </View>
@@ -160,25 +160,25 @@ const styles = StyleSheet.create({
   },
   stateCard: {
     alignItems: 'center',
-    backgroundColor: '#FFFDF8',
-    borderColor: 'rgba(229, 218, 206, 0.85)',
-    borderRadius: 20,
+    backgroundColor: 'rgba(255, 253, 248, 0.72)',
+    borderColor: 'rgba(229, 218, 206, 0.55)',
+    borderRadius: 18,
     borderWidth: 1,
-    gap: 6,
+    gap: 5,
     paddingHorizontal: 18,
-    paddingVertical: 28,
+    paddingVertical: 22,
   },
   stateTitle: {
     color: colors.text,
-    fontSize: 15.5,
-    fontWeight: '900',
+    fontSize: 14.4,
+    fontWeight: '850',
     textAlign: 'center',
   },
   stateText: {
     color: colors.textMuted,
-    fontSize: 13.5,
+    fontSize: 12.8,
     fontWeight: '600',
-    lineHeight: 19,
+    lineHeight: 18,
     textAlign: 'center',
   },
   pressed: {
