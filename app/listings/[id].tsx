@@ -18,6 +18,16 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ItemCard } from '@/components/ItemCard';
+import {
+  createDateOptions,
+  dateRangeContains,
+  dateRangesOverlap,
+  formatDateRange,
+  getListingAvailability,
+  getReservedDateRanges,
+  type ListingAvailabilityRange,
+  type ReservedDateRange,
+} from '@/lib/availability';
 import { useAuth } from '@/lib/auth';
 import { isListingFavorite, toggleFavorite } from '@/lib/favorites';
 import {
@@ -73,11 +83,51 @@ export default function ListingDetailsScreen() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [sending, setSending] = useState(false);
   const [safetyLoading, setSafetyLoading] = useState(false);
+  const [availabilityRanges, setAvailabilityRanges] = useState<ListingAvailabilityRange[]>([]);
+  const [reservedRanges, setReservedRanges] = useState<ReservedDateRange[]>([]);
+  const [selectedStartDate, setSelectedStartDate] = useState<string | null>(null);
+  const [selectedEndDate, setSelectedEndDate] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
 
   const isOwnListing = !!listing && listing.owner_id === session?.user.id;
   const categoryLabel = listing?.category_id ? categoryLabels[listing.category_id] ?? 'Muu' : 'Muu';
   const imageUrl = listing?.image_urls[selectedImageIndex] ?? listing?.image_urls[0];
+  const dateOptions = useMemo(() => createDateOptions(21), []);
+  const unavailableDateValues = useMemo(
+    () =>
+      new Set(
+        dateOptions
+          .filter((option) => {
+            const isReserved = reservedRanges.some((range) => dateRangesOverlap(option.value, option.value, range.startDate, range.endDate));
+            const isBlocked = availabilityRanges.some((range) => range.status === 'blocked' && dateRangesOverlap(option.value, option.value, range.startDate, range.endDate));
+            const availableRanges = availabilityRanges.filter((range) => range.status === 'available');
+            const isOutsideAvailableRanges =
+              availableRanges.length > 0 && !availableRanges.some((range) => dateRangeContains(range.startDate, range.endDate, option.value, option.value));
+
+            return isReserved || isBlocked || isOutsideAvailableRanges;
+          })
+          .map((option) => option.value),
+      ),
+    [availabilityRanges, dateOptions, reservedRanges],
+  );
+  const isSelectedRangeUnavailable = useMemo(() => {
+    if (!selectedStartDate || !selectedEndDate) return false;
+
+    const hasUnavailableDate = dateOptions.some(
+      (option) => option.value >= selectedStartDate && option.value <= selectedEndDate && unavailableDateValues.has(option.value),
+    );
+
+    const hasReservedOverlap = reservedRanges.some((range) => dateRangesOverlap(selectedStartDate, selectedEndDate, range.startDate, range.endDate));
+    const hasBlockedOverlap = availabilityRanges.some(
+      (range) => range.status === 'blocked' && dateRangesOverlap(selectedStartDate, selectedEndDate, range.startDate, range.endDate),
+    );
+    const availableRanges = availabilityRanges.filter((range) => range.status === 'available');
+    const isOutsideAvailableRanges =
+      availableRanges.length > 0 && !availableRanges.some((range) => dateRangeContains(range.startDate, range.endDate, selectedStartDate, selectedEndDate));
+
+    return hasUnavailableDate || hasReservedOverlap || hasBlockedOverlap || isOutsideAvailableRanges;
+  }, [availabilityRanges, dateOptions, reservedRanges, selectedEndDate, selectedStartDate, unavailableDateValues]);
+  const selectedRangeLabel = selectedStartDate && selectedEndDate ? formatDateRange(selectedStartDate, selectedEndDate) : 'Valitse aloitus- ja palautuspäivä';
   const contactButtonLabel = useMemo(() => {
     if (!listing) return 'Ota yhteyttä';
 
@@ -106,7 +156,14 @@ export default function ListingDetailsScreen() {
       setSelectedImageIndex(0);
       setIsFavorite(await isListingFavorite(listingId));
 
-      const activeListings = await getActiveListings(30);
+      const [activeListings, availabilityData, reservedData] = await Promise.all([
+        getActiveListings(30),
+        getListingAvailability(listingId),
+        getReservedDateRanges(listingId),
+      ]);
+
+      setAvailabilityRanges(availabilityData);
+      setReservedRanges(reservedData);
       setSimilarItems(
         activeListings
           .filter((item) => item.id !== data.id && (!!data.category_id ? item.category_id === data.category_id : true))
@@ -123,6 +180,29 @@ export default function ListingDetailsScreen() {
   useEffect(() => {
     void loadListing();
   }, [loadListing]);
+
+  const handleDateSelect = (dateValue: string) => {
+    if (unavailableDateValues.has(dateValue)) {
+      setFeedback('Tämä päivä ei ole saatavilla.');
+      return;
+    }
+
+    setFeedback(null);
+
+    if (!selectedStartDate || selectedEndDate) {
+      setSelectedStartDate(dateValue);
+      setSelectedEndDate(null);
+      return;
+    }
+
+    if (dateValue < selectedStartDate) {
+      setSelectedStartDate(dateValue);
+      setSelectedEndDate(null);
+      return;
+    }
+
+    setSelectedEndDate(dateValue);
+  };
 
   const handleFavorite = async () => {
     if (!listing || safetyLoading) return;
@@ -144,11 +224,26 @@ export default function ListingDetailsScreen() {
   const handleContact = async () => {
     if (!listing || sending || isOwnListing) return;
 
+    if (!selectedStartDate || !selectedEndDate) {
+      setFeedback('Valitse aloitus- ja palautuspäivä ennen pyynnön lähettämistä.');
+      return;
+    }
+
+    if (isSelectedRangeUnavailable) {
+      setFeedback('Valittu ajankohta ei ole saatavilla. Valitse toinen jakso.');
+      return;
+    }
+
     setSending(true);
     setFeedback(null);
 
     try {
-      const conversationId = await createContactForListing({ listingId: listing.id, message });
+      const conversationId = await createContactForListing({
+        endDate: selectedEndDate,
+        listingId: listing.id,
+        message,
+        startDate: selectedStartDate,
+      });
       router.push({ pathname: '/messages/[id]', params: { id: conversationId } });
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : 'Yhteydenotto ei onnistunut.');
@@ -311,6 +406,21 @@ export default function ListingDetailsScreen() {
                   <Text allowFontScaling={false} style={styles.description}>{listing.description || 'Ei kuvausta.'}</Text>
                 </View>
 
+                <View style={styles.sectionCard}>
+                  <View style={styles.availabilityHeaderRow}>
+                    <View>
+                      <Text allowFontScaling={false} style={styles.sectionTitle}>Saatavuus</Text>
+                      <Text allowFontScaling={false} style={styles.availabilitySubtitle}>{availabilityRanges.length > 0 ? 'Omistajan määrittämät saatavuusjaksot huomioidaan.' : 'Valitse sopiva jakso seuraavilta päiviltä.'}</Text>
+                    </View>
+                    <View style={styles.availabilityIcon}><Ionicons color={GREEN_DARK} name="calendar-outline" size={20} /></View>
+                  </View>
+                  {reservedRanges.length > 0 ? (
+                    <Text allowFontScaling={false} style={styles.reservedText}>Varattu: {reservedRanges.slice(0, 2).map((range) => formatDateRange(range.startDate, range.endDate)).join(', ')}</Text>
+                  ) : (
+                    <Text allowFontScaling={false} style={styles.reservedText}>Ei vahvistettuja varauksia lähijaksolle.</Text>
+                  )}
+                </View>
+
                 <View style={styles.safetyCard}>
                   <Ionicons color={GREEN_DARK} name="shield-checkmark-outline" size={22} />
                   <Text allowFontScaling={false} style={styles.safetyText}>Tarkka noutopaikka kannattaa sopia vasta viesteissä. Neyrlo näyttää sijainnin vain suurpiirteisesti.</Text>
@@ -321,9 +431,41 @@ export default function ListingDetailsScreen() {
                 ) : (
                   <>
                     <View style={styles.contactCard}>
+                      <Text allowFontScaling={false} style={styles.sectionTitle}>Valitse ajankohta</Text>
+                      <Text allowFontScaling={false} style={[styles.selectedRangeText, isSelectedRangeUnavailable && styles.unavailableRangeText]}>{selectedRangeLabel}</Text>
+                      <ScrollView contentContainerStyle={styles.dateChipRow} horizontal showsHorizontalScrollIndicator={false}>
+                        {dateOptions.map((option) => {
+                          const isUnavailable = unavailableDateValues.has(option.value);
+                          const isStart = option.value === selectedStartDate;
+                          const isEnd = option.value === selectedEndDate;
+                          const isInsideRange = !!selectedStartDate && !!selectedEndDate && option.value > selectedStartDate && option.value < selectedEndDate;
+
+                          return (
+                            <Pressable
+                              disabled={isUnavailable}
+                              key={option.value}
+                              onPress={() => handleDateSelect(option.value)}
+                              style={({ pressed }) => [
+                                styles.dateChip,
+                                (isStart || isEnd) && styles.dateChipSelected,
+                                isInsideRange && styles.dateChipInsideRange,
+                                isUnavailable && styles.dateChipUnavailable,
+                                pressed && styles.pressed,
+                              ]}
+                            >
+                              <Text allowFontScaling={false} style={[styles.dateChipWeekday, (isStart || isEnd) && styles.dateChipTextSelected, isUnavailable && styles.dateChipTextUnavailable]}>{option.weekday}</Text>
+                              <Text allowFontScaling={false} style={[styles.dateChipLabel, (isStart || isEnd) && styles.dateChipTextSelected, isUnavailable && styles.dateChipTextUnavailable]}>{option.label}</Text>
+                            </Pressable>
+                          );
+                        })}
+                      </ScrollView>
+                      {isSelectedRangeUnavailable && <Text allowFontScaling={false} style={styles.dateWarningText}>Valittu jakso osuu varattuun tai suljettuun päivään.</Text>}
+                    </View>
+
+                    <View style={styles.contactCard}>
                       <Text allowFontScaling={false} style={styles.sectionTitle}>Ota yhteyttä</Text>
                       <TextInput editable={!sending} multiline onChangeText={setMessage} placeholder="Kirjoita viesti omistajalle..." placeholderTextColor={MUTED} style={styles.messageInput} value={message} />
-                      <Pressable disabled={sending} onPress={handleContact} style={({ pressed }) => [styles.primaryButton, sending && styles.disabledButton, pressed && styles.pressed]}>
+                      <Pressable disabled={sending || !selectedStartDate || !selectedEndDate || isSelectedRangeUnavailable} onPress={handleContact} style={({ pressed }) => [styles.primaryButton, (sending || !selectedStartDate || !selectedEndDate || isSelectedRangeUnavailable) && styles.disabledButton, pressed && styles.pressed]}>
                         {sending ? <ActivityIndicator color="#FFFFFF" size="small" /> : <Text allowFontScaling={false} style={styles.primaryButtonText}>{contactButtonLabel}</Text>}
                       </Pressable>
                     </View>
@@ -404,9 +546,25 @@ const styles = StyleSheet.create({
   sectionCard: { backgroundColor: CARD, borderColor: BORDER, borderRadius: 18, borderWidth: 1, marginTop: 12, padding: 18 },
   sectionTitle: { color: TEXT, fontSize: 16, fontWeight: '900', marginBottom: 8 },
   description: { color: MUTED, fontSize: 14.6, fontWeight: '600', lineHeight: 22 },
+  availabilityHeaderRow: { alignItems: 'flex-start', flexDirection: 'row', gap: 12, justifyContent: 'space-between' },
+  availabilityIcon: { alignItems: 'center', backgroundColor: 'rgba(85, 99, 63, 0.08)', borderRadius: 999, height: 38, justifyContent: 'center', width: 38 },
+  availabilitySubtitle: { color: MUTED, fontSize: 13.2, fontWeight: '700', lineHeight: 18, marginTop: -2 },
+  reservedText: { color: GREEN_DARK, fontSize: 13.2, fontWeight: '800', lineHeight: 19, marginTop: 10 },
   safetyCard: { alignItems: 'flex-start', backgroundColor: 'rgba(85, 99, 63, 0.08)', borderColor: 'rgba(85, 99, 63, 0.18)', borderRadius: 16, borderWidth: 1, flexDirection: 'row', gap: 10, marginTop: 12, padding: 14 },
   safetyText: { color: GREEN_DARK, flex: 1, fontSize: 13.5, fontWeight: '700', lineHeight: 19 },
   contactCard: { backgroundColor: CARD, borderColor: BORDER, borderRadius: 18, borderWidth: 1, marginTop: 12, padding: 18 },
+  selectedRangeText: { color: GREEN_DARK, fontSize: 14, fontWeight: '900', marginBottom: 12 },
+  unavailableRangeText: { color: '#9F2E2E' },
+  dateChipRow: { gap: 8, paddingRight: 4 },
+  dateChip: { alignItems: 'center', backgroundColor: '#F8F3EA', borderColor: 'rgba(64, 80, 48, 0.12)', borderRadius: 16, borderWidth: 1, minHeight: 62, minWidth: 78, paddingHorizontal: 12, paddingVertical: 10 },
+  dateChipSelected: { backgroundColor: GREEN, borderColor: GREEN },
+  dateChipInsideRange: { backgroundColor: 'rgba(85, 99, 63, 0.11)', borderColor: 'rgba(85, 99, 63, 0.2)' },
+  dateChipUnavailable: { opacity: 0.38 },
+  dateChipWeekday: { color: MUTED, fontSize: 11.5, fontWeight: '800', textTransform: 'uppercase' },
+  dateChipLabel: { color: TEXT, fontSize: 13, fontWeight: '900', marginTop: 4 },
+  dateChipTextSelected: { color: '#FFFFFF' },
+  dateChipTextUnavailable: { color: MUTED },
+  dateWarningText: { color: '#9F2E2E', fontSize: 12.5, fontWeight: '800', lineHeight: 18, marginTop: 10 },
   messageInput: { backgroundColor: '#F8F3EA', borderColor: 'rgba(64, 80, 48, 0.1)', borderRadius: 14, borderWidth: 1, color: TEXT, fontSize: 14.5, fontWeight: '600', lineHeight: 20, minHeight: 88, padding: 13, textAlignVertical: 'top' },
   ratingPicker: { flexDirection: 'row', gap: 8, marginBottom: 12 },
   primaryButton: { alignItems: 'center', backgroundColor: GREEN, borderRadius: 16, height: 56, justifyContent: 'center', marginTop: 14 },
