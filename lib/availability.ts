@@ -61,6 +61,54 @@ export async function getListingAvailability(listingId: string) {
   return (data ?? []).map(mapAvailabilityRange);
 }
 
+export async function addListingAvailabilityRange(input: { endDate: string; listingId: string; note?: string | null; startDate: string; status: ListingAvailabilityStatus }) {
+  const range = normalizeRequestDateRange(input.startDate, input.endDate);
+
+  if (!range) {
+    throw new Error('Valitse saatavuusjaksolle aloitus- ja lopetuspäivä.');
+  }
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError) {
+    throw toAppError(userError, 'Kirjautuneen käyttäjän tarkistus ei onnistunut.');
+  }
+
+  if (!user) {
+    throw new Error('Kirjaudu sisään muokataksesi saatavuutta.');
+  }
+
+  const { data, error } = await supabase
+    .from('listing_availability')
+    .insert({
+      end_date: range.endDate,
+      listing_id: input.listingId,
+      note: input.note?.trim() || null,
+      owner_id: user.id,
+      start_date: range.startDate,
+      status: input.status,
+    })
+    .select('id, listing_id, owner_id, start_date, end_date, status, note, created_at')
+    .single();
+
+  if (error) {
+    throw toAppError(error, 'Saatavuusjakson lisäys ei onnistunut.');
+  }
+
+  return mapAvailabilityRange(data as AvailabilityRow);
+}
+
+export async function deleteListingAvailabilityRange(rangeId: string) {
+  const { error } = await supabase.from('listing_availability').delete().eq('id', rangeId);
+
+  if (error) {
+    throw toAppError(error, 'Saatavuusjakson poisto ei onnistunut.');
+  }
+}
+
 export async function getReservedDateRanges(listingId: string) {
   const { data, error } = await supabase
     .from('listing_requests')
@@ -157,6 +205,17 @@ export function createDateOptions(dayCount = 21) {
       weekday: date.toLocaleDateString('fi-FI', { weekday: 'short' }).replace('.', ''),
     };
   });
+}
+
+export function getTodayISODate() {
+  return toISODate(new Date());
+}
+
+export function addDaysToISODate(value: string, days: number) {
+  const [year, month, day] = value.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  date.setDate(date.getDate() + days);
+  return toISODate(date);
 }
 
 export function formatDateRange(startDate?: string | null, endDate?: string | null) {
