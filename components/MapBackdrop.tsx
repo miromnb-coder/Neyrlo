@@ -3,7 +3,13 @@ import { Platform, StyleSheet, View } from 'react-native';
 import MapView, { Circle, Marker, PROVIDER_GOOGLE, type MapStyleElement } from 'react-native-maps';
 
 import { MapPin } from '@/components/MapPin';
+import { categoryIcon } from '@/lib/listings';
 import { colors } from '@/constants/theme';
+import type { NearbyItem } from '@/types/item';
+
+type MapBackdropProps = {
+  items?: NearbyItem[];
+};
 
 type Pin = {
   coordinate: {
@@ -21,7 +27,7 @@ const mapCenter = {
 
 const mapProvider = Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined;
 
-const pins: Pin[] = [
+const fallbackPins: Pin[] = [
   { id: 'drill', icon: 'construct-outline', coordinate: { latitude: 60.1726, longitude: 24.9286 } },
   { id: 'chairs', icon: 'shirt-outline', coordinate: { latitude: 60.1683, longitude: 24.9317 } },
   { id: 'suitcase', icon: 'briefcase-outline', coordinate: { latitude: 60.1664, longitude: 24.9448 } },
@@ -107,7 +113,20 @@ const mapStyle: MapStyleElement[] = [
   },
 ];
 
-export function MapBackdrop() {
+export function MapBackdrop({ items = [] }: MapBackdropProps) {
+  const itemPins: Pin[] = items
+    .filter((item) => item.latitude && item.longitude)
+    .map((item) => ({
+      coordinate: {
+        latitude: item.latitude as number,
+        longitude: item.longitude as number,
+      },
+      icon: categoryIcon(item.categoryId) as keyof typeof Ionicons.glyphMap,
+      id: item.id,
+    }));
+
+  const pins = itemPins.length > 0 ? itemPins : fallbackPins;
+
   return (
     <View style={styles.map}>
       <MapView
