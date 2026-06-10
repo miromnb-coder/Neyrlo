@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { formatDate, formatDateRange } from '@/lib/availability';
 import { useAuth } from '@/lib/auth';
 import {
   getConversationDetails,
@@ -114,6 +115,7 @@ export default function ConversationScreen() {
   const isOwner = conversation?.ownerId === session?.user.id;
   const isRequester = conversation?.requesterId === session?.user.id;
   const requestStatus = conversation?.requestStatus ?? null;
+  const hasRequestDates = !!conversation?.requestStartDate && !!conversation?.requestEndDate;
 
   return (
     <SafeAreaView edges={['top', 'bottom']} style={styles.screen}>
@@ -160,6 +162,19 @@ export default function ConversationScreen() {
                     </View>
                   </View>
                   <Text allowFontScaling={false} style={styles.eventDescription}>{requestStatusDescription(requestStatus)}</Text>
+
+                  {hasRequestDates && (
+                    <View style={styles.eventDateGrid}>
+                      <View style={styles.eventDatePill}>
+                        <Text allowFontScaling={false} style={styles.eventDateLabel}>Ajankohta</Text>
+                        <Text allowFontScaling={false} style={styles.eventDateValue}>{formatDateRange(conversation.requestStartDate, conversation.requestEndDate)}</Text>
+                      </View>
+                      <View style={styles.eventDatePill}>
+                        <Text allowFontScaling={false} style={styles.eventDateLabel}>Palautus</Text>
+                        <Text allowFontScaling={false} style={styles.eventDateValue}>{formatDate(conversation.returnDueDate ?? conversation.requestEndDate)}</Text>
+                      </View>
+                    </View>
+                  )}
 
                   {!!conversation.requestId && (
                     <View style={styles.eventActions}>
@@ -375,6 +390,31 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     lineHeight: 19,
     marginTop: 10,
+  },
+  eventDateGrid: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  eventDatePill: {
+    backgroundColor: 'rgba(85, 99, 63, 0.08)',
+    borderColor: 'rgba(85, 99, 63, 0.16)',
+    borderRadius: 15,
+    borderWidth: 1,
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  eventDateLabel: {
+    color: MUTED,
+    fontSize: 11.5,
+    fontWeight: '800',
+    marginBottom: 3,
+  },
+  eventDateValue: {
+    color: GREEN_DARK,
+    fontSize: 13,
+    fontWeight: '900',
   },
   eventActions: {
     flexDirection: 'row',
