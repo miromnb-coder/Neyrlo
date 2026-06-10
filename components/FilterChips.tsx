@@ -1,7 +1,11 @@
-import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { colors, radii } from '@/constants/theme';
 import { filters } from '@/data/nearbyItems';
+
+const DARK_OLIVE = '#41482C';
+const INACTIVE_TEXT = '#686D66';
+const CHIP_BACKGROUND = 'rgba(255, 253, 247, 0.94)';
 
 type FilterChipsProps = {
   selected?: (typeof filters)[number];
@@ -17,6 +21,8 @@ export function FilterChips({ selected = 'Kaikki', onSelect }: FilterChipsProps)
     >
       {filters.map((filter) => {
         const active = filter === selected;
+        const isAll = filter === 'Kaikki';
+        const isSustainable = filter === 'Kestävä';
 
         return (
           <Pressable
@@ -24,9 +30,13 @@ export function FilterChips({ selected = 'Kaikki', onSelect }: FilterChipsProps)
             accessibilityState={{ selected: active }}
             key={filter}
             onPress={() => onSelect?.(filter)}
-            style={[styles.chip, active && styles.activeChip]}
+            style={({ pressed }) => [styles.chip, active && styles.activeChip, pressed && styles.pressed]}
           >
-            <Text allowFontScaling={false} style={[styles.chipText, active && styles.activeChipText]}>{filter}</Text>
+            <View style={styles.chipContent}>
+              {isAll && <Ionicons color={active ? '#FFFFFF' : DARK_OLIVE} name="options-outline" size={16} />}
+              {isSustainable && <Ionicons color={active ? '#FFFFFF' : DARK_OLIVE} name="leaf-outline" size={16} />}
+              <Text allowFontScaling={false} style={[styles.chipText, active && styles.activeChipText]}>{filter}</Text>
+            </View>
           </Pressable>
         );
       })}
@@ -34,39 +44,52 @@ export function FilterChips({ selected = 'Kaikki', onSelect }: FilterChipsProps)
   );
 }
 
+const shadow = {
+  shadowColor: '#1F261B',
+  shadowOffset: { height: 5, width: 0 },
+  shadowOpacity: 0.045,
+  shadowRadius: 10,
+};
+
 const styles = StyleSheet.create({
   row: {
     gap: 10,
     paddingHorizontal: 30,
   },
   chip: {
+    ...shadow,
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 253, 247, 0.93)',
-    borderColor: 'rgba(229, 218, 206, 0.76)',
-    borderRadius: radii.pill,
+    backgroundColor: CHIP_BACKGROUND,
+    borderColor: 'rgba(229, 218, 206, 0.78)',
+    borderRadius: 999,
     borderWidth: 1,
-    height: 38,
+    height: 39,
     justifyContent: 'center',
-    minWidth: 82,
+    minWidth: 76,
     paddingHorizontal: 15,
-    shadowColor: '#000',
-    shadowOffset: { height: 4, width: 0 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
   },
   activeChip: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: DARK_OLIVE,
+    borderColor: DARK_OLIVE,
+  },
+  chipContent: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 6,
   },
   chipText: {
-    color: '#5F665F',
-    fontSize: 13.2,
-    fontWeight: '600',
-    letterSpacing: -0.06,
+    color: INACTIVE_TEXT,
+    fontSize: 13,
+    fontWeight: '650',
+    letterSpacing: -0.05,
     textAlign: 'center',
   },
   activeChipText: {
-    color: colors.surface,
-    fontWeight: '700',
+    color: '#FFFFFF',
+    fontWeight: '750',
+  },
+  pressed: {
+    opacity: 0.78,
+    transform: [{ scale: 0.98 }],
   },
 });
