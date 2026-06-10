@@ -1,11 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { FilterChips } from '@/components/FilterChips';
 import { SearchOverlay } from '@/components/SearchOverlay';
 import { colors, radii } from '@/constants/theme';
-import { filters, nearbyItems } from '@/data/nearbyItems';
+import { filters } from '@/data/nearbyItems';
+import { getActiveListings, listingToNearbyItem } from '@/lib/listings';
+import type { NearbyItem } from '@/types/item';
 
 const categoryImageBaseUrl = 'https://raw.githubusercontent.com/miromnb-coder/Neyrlo/main/assets/images/categories';
 
@@ -16,7 +19,7 @@ const categories = [
     imageUrl: `${categoryImageBaseUrl}/category-tools.PNG`,
   },
   {
-    id: 'outdoor',
+    id: 'outdoors',
     title: 'Ulkoilu',
     imageUrl: `${categoryImageBaseUrl}/category-outdoor.PNG`,
   },
@@ -27,63 +30,6 @@ const categories = [
   },
 ];
 
-const browseItems = [
-  {
-    id: 'speaker-1',
-    title: 'Bluetooth-kaiutin',
-    ownerName: 'Jari',
-    rating: 4.8,
-    distanceKm: 0.6,
-    priceLabel: 'Vaihda',
-    imageUrl: nearbyItems[3].imageUrl,
-  },
-  {
-    id: 'camera-1',
-    title: 'Canon EOS 250D',
-    ownerName: 'Emilia',
-    rating: 4.9,
-    distanceKm: 0.8,
-    priceLabel: 'Vuokraa',
-    imageUrl: 'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=420&h=320&fit=crop&auto=format',
-  },
-  {
-    id: 'controller-1',
-    title: 'Peliohjain (PS5)',
-    ownerName: 'Tomi',
-    rating: 4.7,
-    distanceKm: 0.4,
-    priceLabel: 'Lainaa',
-    imageUrl: 'https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=420&h=320&fit=crop&auto=format',
-  },
-  {
-    id: 'bike-1',
-    title: 'Polkupyörä',
-    ownerName: 'Heidi',
-    rating: 4.8,
-    distanceKm: 1.1,
-    priceLabel: 'Vuokraa',
-    imageUrl: 'https://images.unsplash.com/photo-1507035895480-2b3156c31fc8?w=420&h=320&fit=crop&auto=format',
-  },
-  {
-    id: 'projector-1',
-    title: 'Projektori',
-    ownerName: 'Ville',
-    rating: 4.6,
-    distanceKm: 0.9,
-    priceLabel: 'Vuokraa',
-    imageUrl: 'https://images.unsplash.com/photo-1626379953822-baec19c3accd?w=420&h=320&fit=crop&auto=format',
-  },
-  {
-    id: 'sup-1',
-    title: 'SUP-lauta',
-    ownerName: 'Riku',
-    rating: 4.9,
-    distanceKm: 1.2,
-    priceLabel: 'Vuokraa',
-    imageUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=420&h=320&fit=crop&auto=format',
-  },
-];
-
 const horizontalPadding = 24;
 const productGap = 10;
 const categoryGap = 14;
@@ -91,10 +37,49 @@ const categoryGap = 14;
 export default function BrowseScreen() {
   const { width } = useWindowDimensions();
   const [selectedFilter, setSelectedFilter] = useState<(typeof filters)[number]>('Kaikki');
-  const [selectedCategory, setSelectedCategory] = useState(categories[0].id);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [items, setItems] = useState<NearbyItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const categoryCardWidth = (width - horizontalPadding * 2 - categoryGap * 2) / 3;
   const productCardWidth = (width - horizontalPadding * 2 - productGap) / 2;
+
+  const loadListings = useCallback(async () => {
+    setLoading(true);
+    setErrorMessage(null);
+
+    try {
+      const listings = await getActiveListings(80);
+      setItems(listings.map(listingToNearbyItem));
+    } catch (error) {
+      setItems([]);
+      setErrorMessage(error instanceof Error ? error.message : 'Julkaistujen ilmoitusten lataus ei onnistunut.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadListings();
+    }, [loadListings]),
+  );
+
+  const visibleItems = useMemo(() => {
+    const modeByFilter = {
+      Lainaa: 'borrow',
+      Vuokraa: 'rent',
+      Vaihda: 'swap',
+      Ilmainen: 'free',
+    } as const;
+
+    return items.filter((item) => {
+      const matchesFilter = selectedFilter === 'Kaikki' || item.mode === modeByFilter[selectedFilter as keyof typeof modeByFilter];
+      const matchesCategory = !selectedCategory || item.categoryId === selectedCategory;
+      return matchesFilter && matchesCategory;
+    });
+  }, [items, selectedCategory, selectedFilter]);
 
   return (
     <View style={styles.screen}>
@@ -115,12 +100,12 @@ export default function BrowseScreen() {
             <Text allowFontScaling={false} style={styles.title}>Selaa</Text>
             <View style={styles.titleDot} />
           </View>
-          <Text allowFontScaling={false} style={styles.subtitle}>Löydä tavaroita läheltäsi.</Text>
+          <Text allowFontScaling={false} style={styles.subtitle}>Löydä julkaistuja tavaroita läheltäsi.</Text>
         </View>
 
         <View style={styles.sectionHeader}>
           <Text allowFontScaling={false} style={styles.sectionTitle}>Kategoriat</Text>
-          <Pressable style={styles.showAllButton}>
+          <Pressable onPress={() => setSelectedCategory(null)} style={styles.showAllButton}>
             <Text allowFontScaling={false} style={styles.showAllText}>Näytä kaikki</Text>
             <Ionicons color={colors.primaryDark} name="chevron-forward" size={17} />
           </Pressable>
@@ -133,7 +118,7 @@ export default function BrowseScreen() {
             return (
               <Pressable
                 key={category.id}
-                onPress={() => setSelectedCategory(category.id)}
+                onPress={() => setSelectedCategory((current) => (current === category.id ? null : category.id))}
                 style={[styles.categoryCard, { width: categoryCardWidth }, selected && styles.selectedCategoryCard]}
               >
                 <Image source={{ uri: category.imageUrl }} style={styles.categoryImage} />
@@ -144,43 +129,62 @@ export default function BrowseScreen() {
         </View>
 
         <View style={styles.sectionHeader}>
-          <Text allowFontScaling={false} style={styles.sectionTitle}>Lähellä sinua</Text>
-          <Pressable style={styles.showAllButton}>
-            <Text allowFontScaling={false} style={styles.showAllText}>Näytä kaikki</Text>
-            <Ionicons color={colors.primaryDark} name="chevron-forward" size={17} />
+          <Text allowFontScaling={false} style={styles.sectionTitle}>Julkaistut ilmoitukset</Text>
+          <Pressable onPress={() => void loadListings()} style={styles.showAllButton}>
+            <Text allowFontScaling={false} style={styles.showAllText}>Päivitä</Text>
+            <Ionicons color={colors.primaryDark} name="refresh-outline" size={15} />
           </Pressable>
         </View>
 
-        <View style={styles.grid}>
-          {browseItems.map((item) => (
-            <Pressable key={item.id} style={({ pressed }) => [styles.productCard, { width: productCardWidth }, pressed && styles.cardPressed]}>
-              <View style={styles.productImageWrap}>
-                <Image source={{ uri: item.imageUrl }} style={styles.productImage} />
-                <Ionicons color="#59625E" name="heart-outline" size={21} style={styles.heartIcon} />
-              </View>
-
-              <View style={styles.productBody}>
-                <Text allowFontScaling={false} numberOfLines={1} style={styles.productTitle}>{item.title}</Text>
-                <View style={styles.ownerRow}>
-                  <Text allowFontScaling={false} numberOfLines={1} style={styles.ownerText}>{item.ownerName}</Text>
-                  <Text allowFontScaling={false} style={styles.ownerText}>•</Text>
-                  <Text allowFontScaling={false} style={styles.star}>★</Text>
-                  <Text allowFontScaling={false} style={styles.ownerText}>{item.rating.toFixed(1)}</Text>
+        {loading ? (
+          <View style={styles.stateCard}>
+            <ActivityIndicator color={colors.primary} size="small" />
+            <Text allowFontScaling={false} style={styles.stateText}>Ladataan julkaistuja ilmoituksia...</Text>
+          </View>
+        ) : errorMessage ? (
+          <View style={styles.stateCard}>
+            <Ionicons color={colors.primary} name="alert-circle-outline" size={24} />
+            <Text allowFontScaling={false} style={styles.stateTitle}>Lataus ei onnistunut</Text>
+            <Text allowFontScaling={false} style={styles.stateText}>{errorMessage}</Text>
+          </View>
+        ) : visibleItems.length === 0 ? (
+          <View style={styles.stateCard}>
+            <Ionicons color={colors.primary} name="cube-outline" size={24} />
+            <Text allowFontScaling={false} style={styles.stateTitle}>Ei julkaistuja ilmoituksia vielä</Text>
+            <Text allowFontScaling={false} style={styles.stateText}>Luo ilmoitus Lisää-sivulta ja julkaise se tarkistusvaiheessa.</Text>
+          </View>
+        ) : (
+          <View style={styles.grid}>
+            {visibleItems.map((item) => (
+              <Pressable key={item.id} style={({ pressed }) => [styles.productCard, { width: productCardWidth }, pressed && styles.cardPressed]}>
+                <View style={styles.productImageWrap}>
+                  <Image source={{ uri: item.imageUrl }} style={styles.productImage} />
+                  <Ionicons color="#59625E" name="heart-outline" size={21} style={styles.heartIcon} />
                 </View>
 
-                <View style={styles.productFooter}>
-                  <View style={styles.distanceRow}>
-                    <Ionicons color={colors.textMuted} name="location-outline" size={12} />
-                    <Text allowFontScaling={false} style={styles.distanceText}>{item.distanceKm.toFixed(1).replace('.', ',')} km</Text>
+                <View style={styles.productBody}>
+                  <Text allowFontScaling={false} numberOfLines={1} style={styles.productTitle}>{item.title}</Text>
+                  <View style={styles.ownerRow}>
+                    <Text allowFontScaling={false} numberOfLines={1} style={styles.ownerText}>{item.ownerName}</Text>
+                    <Text allowFontScaling={false} style={styles.ownerText}>•</Text>
+                    <Text allowFontScaling={false} style={styles.star}>★</Text>
+                    <Text allowFontScaling={false} style={styles.ownerText}>{item.rating.toFixed(1)}</Text>
                   </View>
-                  <View style={styles.actionButton}>
-                    <Text allowFontScaling={false} style={styles.actionText}>{item.priceLabel}</Text>
+
+                  <View style={styles.productFooter}>
+                    <View style={styles.distanceRow}>
+                      <Ionicons color={colors.textMuted} name="location-outline" size={12} />
+                      <Text allowFontScaling={false} style={styles.distanceText}>{item.locationLabel ?? 'Lähellä'}</Text>
+                    </View>
+                    <View style={styles.actionButton}>
+                      <Text allowFontScaling={false} style={styles.actionText}>{item.priceLabel}</Text>
+                    </View>
                   </View>
                 </View>
-              </View>
-            </Pressable>
-          ))}
-        </View>
+              </Pressable>
+            ))}
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -359,32 +363,60 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   productFooter: {
-    alignItems: 'flex-end',
+    alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 4,
+    marginTop: 6,
   },
   distanceRow: {
     alignItems: 'center',
+    flex: 1,
     flexDirection: 'row',
-    gap: 1,
+    gap: 2,
+    minWidth: 0,
   },
   distanceText: {
     color: colors.textMuted,
-    fontSize: 10.8,
+    flex: 1,
+    fontSize: 10.3,
     fontWeight: '600',
   },
   actionButton: {
     backgroundColor: colors.primary,
     borderRadius: radii.pill,
-    minWidth: 61,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    minWidth: 60,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
   },
   actionText: {
     color: colors.surface,
-    fontSize: 10.9,
-    fontWeight: '700',
+    fontSize: 10.5,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  stateCard: {
+    alignItems: 'center',
+    backgroundColor: '#FFFDF8',
+    borderColor: 'rgba(229, 218, 206, 0.85)',
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 7,
+    marginHorizontal: horizontalPadding,
+    marginTop: 13,
+    paddingHorizontal: 18,
+    paddingVertical: 26,
+  },
+  stateTitle: {
+    color: colors.text,
+    fontSize: 15.8,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  stateText: {
+    color: colors.textMuted,
+    fontSize: 13.5,
+    fontWeight: '600',
+    lineHeight: 19,
     textAlign: 'center',
   },
 });
