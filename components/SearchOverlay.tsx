@@ -1,17 +1,35 @@
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, TextInput, View } from 'react-native';
 
 import { colors } from '@/constants/theme';
 
-export function SearchOverlay() {
+type SearchOverlayProps = {
+  onChangeText?: (value: string) => void;
+  onFilterPress?: () => void;
+  placeholder?: string;
+  value?: string;
+};
+
+export function SearchOverlay({
+  onChangeText,
+  onFilterPress,
+  placeholder = 'Hae tavaroita tai kategorioita',
+  value,
+}: SearchOverlayProps) {
   return (
     <View style={styles.searchCard}>
       <Ionicons color={colors.primaryDark} name="search" size={22} />
-      <Text allowFontScaling={false} numberOfLines={1} style={styles.placeholder}>
-        Hae tavaroita tai kategorioita
-      </Text>
+      <TextInput
+        allowFontScaling={false}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor="#5F665F"
+        returnKeyType="search"
+        style={styles.input}
+        value={value}
+      />
       <View style={styles.divider} />
-      <View style={styles.filterButton}>
+      <View onTouchEnd={onFilterPress} style={styles.filterButton}>
         <Ionicons color={colors.primaryDark} name="options-outline" size={21} />
       </View>
     </View>
@@ -35,12 +53,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.045,
     shadowRadius: 15,
   },
-  placeholder: {
-    color: '#5F665F',
+  input: {
+    color: colors.text,
     flex: 1,
     fontSize: 15.2,
     fontWeight: '600',
     letterSpacing: -0.08,
+    padding: 0,
   },
   divider: {
     backgroundColor: 'rgba(111, 117, 109, 0.14)',
