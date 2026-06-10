@@ -124,10 +124,10 @@ export default function ReviewListingScreen() {
     <SafeAreaView edges={['top', 'bottom']} style={styles.screen}>
       <View style={styles.header}>
         <Pressable accessibilityLabel="Takaisin" hitSlop={12} onPress={() => router.back()} style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
-          <Ionicons color={TEXT} name="arrow-back" size={24} />
+          <Ionicons color={TEXT} name="arrow-back" size={22} />
         </Pressable>
         <Text allowFontScaling={false} style={styles.brand}>NEYRLO</Text>
-        <Text allowFontScaling={false} style={styles.pageTitle}>Tarkista ilmoitus</Text>
+        <Text allowFontScaling={false} numberOfLines={1} style={styles.pageTitle}>Tarkista ilmoitus</Text>
       </View>
 
       {loading ? (
@@ -152,8 +152,8 @@ export default function ReviewListingScreen() {
                   ))}
                 </ScrollView>
               ) : (
-                <View style={[styles.emptyImage, { width: heroWidth }]}>
-                  <Ionicons color={DARK_OLIVE} name="image-outline" size={42} />
+                <View style={[styles.emptyImage, { width: heroWidth }]}> 
+                  <Ionicons color={DARK_OLIVE} name="image-outline" size={40} />
                   <Text allowFontScaling={false} style={styles.emptyImageText}>Ei kuvia vielä</Text>
                 </View>
               )}
@@ -174,7 +174,7 @@ export default function ReviewListingScreen() {
             )}
 
             {!!listing && (
-              <View style={styles.summaryCard}>
+              <View style={[styles.summaryCard, images.length <= 1 && styles.summaryCardWithoutDots]}>
                 <View style={styles.pillRow}>
                   <View style={[styles.statusPill, statusLabel === 'Luonnos' && styles.draftPill]}>
                     <Text allowFontScaling={false} style={[styles.statusPillText, statusLabel === 'Luonnos' && styles.draftPillText]}>{statusLabel}</Text>
@@ -225,13 +225,13 @@ export default function ReviewListingScreen() {
           {!!listing && (
             <View style={styles.actionBar}>
               <Pressable onPress={openEdit} style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}>
-                <Ionicons color={DARK_OLIVE} name="pencil-outline" size={22} />
+                <Ionicons color={DARK_OLIVE} name="pencil-outline" size={21} />
                 <Text allowFontScaling={false} style={styles.secondaryButtonText}>Muokkaa</Text>
               </Pressable>
 
               {listing.status === 'active' ? (
                 <Pressable onPress={() => router.replace('/(tabs)/browse')} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}>
-                  <Ionicons color="#FFFFFF" name="open-outline" size={22} />
+                  <Ionicons color="#FFFFFF" name="open-outline" size={21} />
                   <Text allowFontScaling={false} style={styles.primaryButtonText}>Avaa</Text>
                 </Pressable>
               ) : (
@@ -240,7 +240,7 @@ export default function ReviewListingScreen() {
                     <ActivityIndicator color="#FFFFFF" size="small" />
                   ) : (
                     <>
-                      <Ionicons color="#FFFFFF" name="share-outline" size={23} />
+                      <Ionicons color="#FFFFFF" name="share-outline" size={22} />
                       <Text allowFontScaling={false} style={styles.primaryButtonText}>Julkaise</Text>
                     </>
                   )}
@@ -258,11 +258,11 @@ function InfoCard({ icon, label, subLabel, value }: { icon: keyof typeof Ionicon
   return (
     <View style={styles.infoCard}>
       <View style={styles.infoIconCircle}>
-        <Ionicons color={DARK_OLIVE} name={icon} size={23} />
+        <Ionicons color={DARK_OLIVE} name={icon} size={21} />
       </View>
       <View style={styles.infoTextWrap}>
-        <Text allowFontScaling={false} style={styles.infoLabel}>{label}</Text>
-        <Text allowFontScaling={false} numberOfLines={1} style={styles.infoValue}>{value}</Text>
+        <Text allowFontScaling={false} numberOfLines={1} style={styles.infoLabel}>{label}</Text>
+        <Text allowFontScaling={false} numberOfLines={2} style={styles.infoValue}>{value}</Text>
         {!!subLabel && <Text allowFontScaling={false} numberOfLines={1} style={styles.infoSubValue}>{subLabel}</Text>}
       </View>
     </View>
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    minHeight: 124,
+    minHeight: 122,
     paddingHorizontal: 24,
     paddingTop: 6,
   },
@@ -315,20 +315,21 @@ const styles = StyleSheet.create({
     borderColor: BORDER,
     borderRadius: 999,
     borderWidth: 1,
-    height: 56,
+    height: 50,
     justifyContent: 'center',
     left: 24,
     position: 'absolute',
     shadowColor: '#1F261B',
-    shadowOffset: { height: 7, width: 0 },
-    shadowOpacity: 0.055,
-    shadowRadius: 14,
-    top: 38,
-    width: 56,
+    shadowOffset: { height: 6, width: 0 },
+    shadowOpacity: 0.05,
+    shadowRadius: 13,
+    top: 39,
+    width: 50,
+    zIndex: 2,
   },
   brand: {
     color: DARK_OLIVE,
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: '800',
     letterSpacing: 4.2,
     textAlign: 'center',
@@ -336,11 +337,13 @@ const styles = StyleSheet.create({
   pageTitle: {
     color: TEXT,
     fontFamily: serifFont,
-    fontSize: 32,
+    fontSize: 27,
     fontWeight: Platform.OS === 'ios' ? '500' : '700',
-    letterSpacing: -0.65,
-    lineHeight: 38,
-    marginTop: 33,
+    letterSpacing: -0.45,
+    lineHeight: 33,
+    marginTop: 31,
+    maxWidth: '78%',
+    textAlign: 'center',
   },
   loadingWrap: {
     alignItems: 'center',
@@ -358,33 +361,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   heroWrap: {
-    borderRadius: 24,
-    height: 246,
+    borderRadius: 23,
+    height: 236,
     overflow: 'hidden',
     position: 'relative',
   },
   heroScroller: {
-    borderRadius: 24,
+    borderRadius: 23,
   },
   heroImage: {
     backgroundColor: '#F4EDE5',
-    borderRadius: 24,
-    height: 246,
+    borderRadius: 23,
+    height: 236,
     resizeMode: 'cover',
   },
   emptyImage: {
     alignItems: 'center',
     backgroundColor: '#F4EDE5',
-    borderColor: 'rgba(65, 72, 44, 0.20)',
-    borderRadius: 24,
+    borderColor: 'rgba(65, 72, 44, 0.18)',
+    borderRadius: 23,
     borderStyle: 'dashed',
-    borderWidth: 1.2,
-    height: 246,
+    borderWidth: 1.1,
+    height: 236,
     justifyContent: 'center',
   },
   emptyImageText: {
     color: DARK_OLIVE,
-    fontSize: 15,
+    fontSize: 14.5,
     fontWeight: '750',
     marginTop: 8,
   },
@@ -393,31 +396,31 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(32, 37, 31, 0.64)',
     borderRadius: 999,
     bottom: 18,
-    height: 34,
+    height: 32,
     justifyContent: 'center',
     left: '50%',
-    marginLeft: -31,
+    marginLeft: -29,
     position: 'absolute',
-    width: 62,
+    width: 58,
   },
   imageCountText: {
     color: '#FFFFFF',
-    fontSize: 15,
+    fontSize: 14.5,
     fontWeight: '750',
   },
   dotsRow: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 9,
+    gap: 8,
     justifyContent: 'center',
-    marginBottom: 14,
-    marginTop: 12,
+    marginBottom: 13,
+    marginTop: 11,
   },
   dot: {
     backgroundColor: 'rgba(104, 109, 102, 0.20)',
     borderRadius: 999,
-    height: 10,
-    width: 10,
+    height: 9,
+    width: 9,
   },
   activeDot: {
     backgroundColor: DARK_OLIVE,
@@ -425,31 +428,34 @@ const styles = StyleSheet.create({
   summaryCard: {
     backgroundColor: CARD,
     borderColor: BORDER,
-    borderRadius: 24,
+    borderRadius: 23,
     borderWidth: 1,
-    padding: 20,
+    padding: 18,
     shadowColor: '#1F261B',
     shadowOffset: { height: 8, width: 0 },
     shadowOpacity: 0.04,
     shadowRadius: 18,
   },
+  summaryCardWithoutDots: {
+    marginTop: 10,
+  },
   pillRow: {
     flexDirection: 'row',
-    gap: 9,
-    marginBottom: 13,
+    gap: 8,
+    marginBottom: 12,
   },
   statusPill: {
     backgroundColor: SOFT_GREEN,
-    borderRadius: 10,
-    paddingHorizontal: 13,
-    paddingVertical: 8,
+    borderRadius: 9,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
   },
   draftPill: {
     backgroundColor: SOFT_BEIGE,
   },
   statusPillText: {
     color: DARK_OLIVE,
-    fontSize: 12.8,
+    fontSize: 12.3,
     fontWeight: '750',
   },
   draftPillText: {
@@ -457,28 +463,28 @@ const styles = StyleSheet.create({
   },
   typePill: {
     backgroundColor: SOFT_GREEN,
-    borderRadius: 10,
-    paddingHorizontal: 13,
-    paddingVertical: 8,
+    borderRadius: 9,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
   },
   typePillText: {
     color: DARK_OLIVE,
-    fontSize: 12.8,
+    fontSize: 12.3,
     fontWeight: '750',
   },
   listingTitle: {
     color: TEXT,
     fontFamily: serifFont,
-    fontSize: 31,
+    fontSize: 29,
     fontWeight: Platform.OS === 'ios' ? '500' : '700',
-    letterSpacing: -0.62,
-    lineHeight: 37,
+    letterSpacing: -0.52,
+    lineHeight: 35,
   },
   ownerRow: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 16,
+    gap: 11,
+    marginTop: 15,
   },
   ownerAvatar: {
     alignItems: 'center',
@@ -486,46 +492,47 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(65, 72, 44, 0.10)',
     borderRadius: 999,
     borderWidth: 1,
-    height: 54,
+    height: 46,
     justifyContent: 'center',
-    width: 54,
+    width: 46,
   },
   ownerInitial: {
     color: DARK_OLIVE,
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: '900',
   },
   ownerName: {
     color: TEXT,
     flex: 1,
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '650',
   },
   infoGrid: {
+    columnGap: 12,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
-    marginTop: 22,
+    marginTop: 20,
+    rowGap: 12,
   },
   infoCard: {
     alignItems: 'center',
     backgroundColor: 'rgba(255, 253, 247, 0.74)',
     borderColor: BORDER,
-    borderRadius: 17,
+    borderRadius: 16,
     borderWidth: 1,
+    flexBasis: '48%',
     flexDirection: 'row',
-    gap: 13,
-    minHeight: 108,
-    padding: 15,
-    width: '48%',
+    gap: 10,
+    minHeight: 100,
+    padding: 13,
   },
   infoIconCircle: {
     alignItems: 'center',
     backgroundColor: SOFT_GREEN,
     borderRadius: 999,
-    height: 54,
+    height: 45,
     justifyContent: 'center',
-    width: 54,
+    width: 45,
   },
   infoTextWrap: {
     flex: 1,
@@ -533,41 +540,41 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     color: MUTED,
-    fontSize: 13,
+    fontSize: 12.2,
     fontWeight: '650',
   },
   infoValue: {
     color: TEXT,
-    fontSize: 15.5,
+    fontSize: 14.1,
     fontWeight: '800',
-    lineHeight: 20,
+    lineHeight: 18,
     marginTop: 2,
   },
   infoSubValue: {
     color: MUTED,
-    fontSize: 12.5,
+    fontSize: 11.6,
     fontWeight: '600',
-    marginTop: 5,
+    marginTop: 4,
   },
   descriptionCard: {
     backgroundColor: 'rgba(255, 253, 247, 0.74)',
     borderColor: BORDER,
-    borderRadius: 17,
+    borderRadius: 16,
     borderWidth: 1,
-    marginTop: 16,
-    padding: 18,
+    marginTop: 14,
+    padding: 17,
   },
   descriptionTitle: {
     color: TEXT,
-    fontSize: 16,
+    fontSize: 15.5,
     fontWeight: '850',
-    marginBottom: 10,
+    marginBottom: 9,
   },
   descriptionText: {
     color: '#3C4039',
-    fontSize: 15.5,
+    fontSize: 15,
     fontWeight: '500',
-    lineHeight: 23,
+    lineHeight: 22,
   },
   warningCard: {
     alignItems: 'flex-start',
@@ -637,7 +644,7 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     color: DARK_OLIVE,
-    fontSize: 16.5,
+    fontSize: 16.2,
     fontWeight: '800',
   },
   primaryButton: {
@@ -656,11 +663,11 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: '#FFFFFF',
-    fontSize: 16.5,
+    fontSize: 16.2,
     fontWeight: '850',
   },
   disabledButton: {
-    opacity: 0.48,
+    opacity: 0.68,
   },
   pressed: {
     opacity: 0.8,
