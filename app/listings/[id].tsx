@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -29,6 +30,7 @@ import {
   type ReservedDateRange,
 } from '@/lib/availability';
 import { useAuth } from '@/lib/auth';
+import { calculateDistanceKm, addDistancesToItems, type Coordinates } from '@/lib/distance';
 import { isListingFavorite, toggleFavorite } from '@/lib/favorites';
 import {
   getActiveListings,
@@ -48,7 +50,7 @@ const TEXT = '#20251F';
 const MUTED = '#686D66';
 const BORDER = 'rgba(229, 218, 206, 0.82)';
 const SOFT_GREEN = '#EEF2E6';
-const HERO_HEIGHT = 388;
+const HERO_HEIGHT = 390;
 
 const reportReasons: { label: string; value: ReportReason }[] = [
   { label: 'Roskaposti', value: 'spam' },
@@ -78,6 +80,8 @@ export default function ListingDetailsScreen() {
   const [selectedStartDate, setSelectedStartDate] = useState<string | null>(null);
   const [selectedEndDate, setSelectedEndDate] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [userLocation, setUserLocation] = useState<Coordinates | null>(null);
+  const [distanceLabel, setDistanceLabel] = useState<string | null>(null);
 
   const isOwnListing = !!listing && listing.owner_id === session?.user.id;
   const dateOptions = useMemo(() => createDateOptions(21), []);
@@ -147,9 +151,21 @@ export default function ListingDetailsScreen() {
 
     try {
       const data = await getListingForReview(listingId);
+      const grantedLocation = await getGrantedUserCoordinates();
       setListing(data);
+      setUserLocation(grantedLocation);
       setSelectedImageIndex(0);
       setIsFavorite(await isListingFavorite(listingId));
+
+      if (grantedLocation && data.location_lat !== null && data.location_lng !== null) {
+        const distanceKm = calculateDistanceKm(grantedLocation, {
+          latitude: data.location_lat,
+          longitude: data.location_lng,
+        });
+        setDistanceLabel(formatDistance(distanceKm));
+      } else {
+        setDistanceLabel(null);
+      }
 
       const [activeListings, availabilityData, reservedData] = await Promise.all([
         getActiveListings(30),
@@ -157,14 +173,14 @@ export default function ListingDetailsScreen() {
         getReservedDateRanges(listingId),
       ]);
 
+      const nearbyItems = activeListings
+        .filter((item) => item.id !== data.id && (!!data.category_id ? item.category_id === data.category_id : true))
+        .slice(0, 8)
+        .map(listingToNearbyItem);
+
       setAvailabilityRanges(availabilityData);
       setReservedRanges(reservedData);
-      setSimilarItems(
-        activeListings
-          .filter((item) => item.id !== data.id && (!!data.category_id ? item.category_id === data.category_id : true))
-          .slice(0, 8)
-          .map(listingToNearbyItem),
-      );
+      setSimilarItems(addDistancesToItems(nearbyItems, grantedLocation));
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : 'Ilmoituksen lataus ei onnistunut.');
     } finally {
@@ -414,7 +430,9 @@ export default function ListingDetailsScreen() {
             </ScrollView>
           ) : (
             <View style={[styles.emptyImage, { width: heroWidth }]}> 
-              <Ionicons color={DARK_OLIVE} name="image-outline" size={46} />
+              <View style={styles.emptyImageIcon}>
+                <Ionicons color={DARK_OLIVE} name="image-outline" size={34} />
+              </View>
               <Text allowFontScaling={false} style={styles.emptyImageText}>Kuva tulossa</Text>
             </View>
           )}
@@ -451,11 +469,17 @@ export default function ListingDetailsScreen() {
           <View style={styles.sheet}>
             <View style={styles.titleRow}>
               <View style={styles.titleBlock}>
-                <Text allowFontScaling={false} numberOfLines={2} style={styles.title}>{listing.title}</Text>
+                <Text allowFontScaling={false} numberOfLines={2} ellipsizeMode="tail" style={styles.title}>{listing.title}</Text>
                 <View style={styles.metaRow}>
-                  <MetaItem icon="location-outline" text="0,6 km" />
-                  <Text allowFontScaling={false} style={styles.metaDot}>·</Text>
-                  <Text allowFontScaling={false} numberOfLines={1} style={styles.metaLocationText}>{listing.location_label ?? 'Sijainti ei tiedossa'}</Text>
+                  {distanceLabel ? (
+                    <>
+                      <MetaItem icon="location-outline" text={distanceLabel} />
+                      <Text allowFontScaling={false} style={styles.metaDot}>·</Text>
+                      <Text allowFontScaling={false} numberOfLines={1} ellipsizeMode="tail" style={styles.metaLocationText}>{listing.location_label ?? 'Sijainti ei tiedossa'}</Text>
+                    </>
+                  ) : (
+                    <MetaItem icon="location-outline" text={listing.location_label ?? 'Sijainti ei tiedossa'} />
+                  )}
                   <MetaItem icon="shield-checkmark-outline" text="Luotettu jäsen" />
                 </View>
               </View>
@@ -470,14 +494,14 @@ export default function ListingDetailsScreen() {
                 <Text allowFontScaling={false} style={styles.ownerInitial}>{initialForName(listing.owner_name)}</Text>
               </View>
               <View style={styles.ownerTextBlock}>
-                <Text allowFontScaling={false} numberOfLines={1} style={styles.ownerName}>{shortName(listing.owner_name)}</Text>
-                <Text allowFontScaling={false} numberOfLines={1} style={styles.ownerLocation}>{listing.location_label ?? 'Neyrlo-käyttäjä'}</Text>
+                <Text allowFontScaling={false} numberOfLines={1} ellipsizeMode="tail" style={styles.ownerName}>{shortName(listing.owner_name)}</Text>
+                <Text allowFontScaling={false} numberOfLines={1} ellipsizeMode="tail" style={styles.ownerLocation}>{listing.location_label ?? 'Neyrlo-käyttäjä'}</Text>
                 <Text allowFontScaling={false} numberOfLines={1} style={styles.ownerResponse}>Vastaa yleensä 1 h sisällä</Text>
               </View>
               <View style={styles.ownerSideBlock}>
                 <View style={styles.trustBadge}>
                   <Ionicons color={DARK_OLIVE} name="shield-checkmark-outline" size={13} />
-                  <Text allowFontScaling={false} style={styles.trustBadgeText}>Luotettu jäsen</Text>
+                  <Text allowFontScaling={false} numberOfLines={1} style={styles.trustBadgeText}>Luotettu jäsen</Text>
                 </View>
                 {listing.owner_rating > 0 && (
                   <View style={styles.ratingRow}>
@@ -550,7 +574,7 @@ export default function ListingDetailsScreen() {
                 </View>
                 <ScrollView contentContainerStyle={styles.similarRow} horizontal showsHorizontalScrollIndicator={false}>
                   {similarItems.map((item) => (
-                    <SimilarCard item={item} key={item.id} onPress={() => router.push({ pathname: '/listings/[id]', params: { id: item.id } })} />
+                    <SimilarCard item={item} key={item.id} onPress={() => router.push({ pathname: '/listings/[id]', params: { id: item.id } })} showDistance={!!userLocation} />
                   ))}
                 </ScrollView>
               </View>
@@ -571,7 +595,7 @@ function MetaItem({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text: 
   return (
     <View style={styles.metaItem}>
       <Ionicons color={MUTED} name={icon} size={15} />
-      <Text allowFontScaling={false} numberOfLines={1} style={styles.metaText}>{text}</Text>
+      <Text allowFontScaling={false} numberOfLines={1} ellipsizeMode="tail" style={styles.metaText}>{text}</Text>
     </View>
   );
 }
@@ -602,7 +626,7 @@ function AvailabilityPreview({
 
           return (
             <Pressable disabled={isUnavailable} key={option.value} onPress={() => onDatePress(option.value)} style={({ pressed }) => [styles.dayColumn, pressed && styles.dayPressed]}>
-              <Text allowFontScaling={false} style={styles.weekdayText}>{option.weekday.toUpperCase()}</Text>
+              <Text allowFontScaling={false} numberOfLines={1} style={styles.weekdayText}>{option.weekday.toUpperCase()}</Text>
               <View style={[styles.dayCircle, isSelected && styles.dayCircleSelected, isInside && styles.dayCircleInside, isUnavailable && styles.dayCircleUnavailable]}>
                 <Text allowFontScaling={false} style={[styles.dayText, isSelected && styles.dayTextSelected, isUnavailable && styles.dayTextUnavailable]}>{option.day}</Text>
               </View>
@@ -613,7 +637,7 @@ function AvailabilityPreview({
       </View>
       <Pressable onPress={onOpenAll} style={({ pressed }) => [styles.panelFooterButton, pressed && styles.pressed]}>
         <Ionicons color={MUTED} name="calendar-outline" size={16} />
-        <Text allowFontScaling={false} numberOfLines={1} style={styles.panelFooterText}>Katso kaikki saatavuudet</Text>
+        <Text allowFontScaling={false} numberOfLines={1} ellipsizeMode="tail" style={styles.panelFooterText}>Katso kaikki saatavuudet</Text>
         <Ionicons color={MUTED} name="chevron-forward" size={16} />
       </Pressable>
     </View>
@@ -631,7 +655,7 @@ function PriceCard({ listing }: { listing: ListingWithRelations }) {
       </View>
       <Text allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72} style={styles.priceValue}>{formatPrice(listing.price_amount, listing.listing_type)}</Text>
       <View style={styles.priceFooterRow}>
-        <Text allowFontScaling={false} numberOfLines={1} style={styles.priceHint}>Tai tee oma ehdotus</Text>
+        <Text allowFontScaling={false} numberOfLines={1} ellipsizeMode="tail" style={styles.priceHint}>Tai tee oma ehdotus</Text>
         <Ionicons color={MUTED} name="chevron-forward" size={16} />
       </View>
     </View>
@@ -642,10 +666,10 @@ function DescriptionCard({ description }: { description: string | null }) {
   return (
     <View style={[styles.infoPanel, styles.descriptionPanel]}>
       <Text allowFontScaling={false} style={styles.panelTitle}>Kuvaus</Text>
-      <Text allowFontScaling={false} numberOfLines={5} style={styles.descriptionText}>{description || 'Ei kuvausta.'}</Text>
+      <Text allowFontScaling={false} numberOfLines={5} ellipsizeMode="tail" style={styles.descriptionText}>{description || 'Ei kuvausta.'}</Text>
       <View style={styles.includedPill}>
         <Ionicons color={DARK_OLIVE} name="checkmark-circle" size={16} />
-        <Text allowFontScaling={false} numberOfLines={1} style={styles.includedPillText}>Mukana: sovitaan</Text>
+        <Text allowFontScaling={false} numberOfLines={1} ellipsizeMode="tail" style={styles.includedPillText}>Mukana: sovitaan</Text>
       </View>
     </View>
   );
@@ -659,7 +683,7 @@ function SafetyCard({ onBlock, onReport }: { onBlock: () => void; onReport: () =
       <SafetyRow icon="people-outline" text="Ystävällinen yhteisö" />
       <SafetyRow icon="shield-checkmark-outline" text="Vakuutettu käyttö" />
       <View style={styles.safetyMoreRow}>
-        <Text allowFontScaling={false} numberOfLines={2} style={styles.safetyMoreText}>Lue lisää turvallisuudesta</Text>
+        <Text allowFontScaling={false} numberOfLines={2} ellipsizeMode="tail" style={styles.safetyMoreText}>Lue lisää turvallisuudesta</Text>
         <Ionicons color={MUTED} name="chevron-forward" size={15} />
       </View>
       <View style={styles.safetyLinksRow}>
@@ -679,7 +703,7 @@ function SafetyRow({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text:
   return (
     <View style={styles.safetyRow}>
       <Ionicons color={DARK_OLIVE} name={icon} size={15} />
-      <Text allowFontScaling={false} numberOfLines={1} style={styles.safetyRowText}>{text}</Text>
+      <Text allowFontScaling={false} numberOfLines={1} ellipsizeMode="tail" style={styles.safetyRowText}>{text}</Text>
     </View>
   );
 }
@@ -709,8 +733,8 @@ function RequestCard({
     <View style={styles.requestCard}>
       <View style={styles.requestHeaderRow}>
         <View style={styles.requestTitleBlock}>
-          <Text allowFontScaling={false} style={styles.requestTitle}>Pyydä varausta {ownerRequestName(listing.owner_name)}</Text>
-          <Text allowFontScaling={false} style={styles.requestSubtitle}>Valitse ajankohta ja lähetä pyyntö. Saat vastauksen pian.</Text>
+          <Text allowFontScaling={false} numberOfLines={1} ellipsizeMode="tail" style={styles.requestTitle}>Pyydä varausta {ownerRequestName(listing.owner_name)}</Text>
+          <Text allowFontScaling={false} numberOfLines={2} style={styles.requestSubtitle}>Valitse ajankohta ja lähetä pyyntö. Saat vastauksen pian.</Text>
         </View>
         <View style={styles.responsePill}>
           <Ionicons color={DARK_OLIVE} name="time-outline" size={15} />
@@ -745,14 +769,17 @@ function DateField({ label, onPress, value }: { label: string; onPress: () => vo
       <Text allowFontScaling={false} style={styles.dateFieldLabel}>{label}</Text>
       <Pressable onPress={onPress} style={({ pressed }) => [styles.dateField, pressed && styles.pressed]}>
         <Ionicons color={MUTED} name="calendar-outline" size={18} />
-        <Text allowFontScaling={false} numberOfLines={1} style={styles.dateFieldText}>{value ? formatShortDate(value) : 'Valitse'}</Text>
+        <Text allowFontScaling={false} numberOfLines={1} ellipsizeMode="tail" style={styles.dateFieldText}>{value ? formatShortDate(value) : 'Valitse'}</Text>
         <Ionicons color={MUTED} name="chevron-down" size={16} />
       </Pressable>
     </View>
   );
 }
 
-function SimilarCard({ item, onPress }: { item: NearbyItem; onPress: () => void }) {
+function SimilarCard({ item, onPress, showDistance }: { item: NearbyItem; onPress: () => void; showDistance: boolean }) {
+  const hasCoordinates = item.latitude !== undefined && item.longitude !== undefined;
+  const meta = showDistance && hasCoordinates ? `${formatDistance(item.distanceKm)} · ${item.locationLabel ?? 'Lähellä'}` : item.locationLabel ?? 'Lähellä';
+
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.similarCard, pressed && styles.pressed]}>
       <View style={styles.similarImageWrap}>
@@ -762,14 +789,49 @@ function SimilarCard({ item, onPress }: { item: NearbyItem; onPress: () => void 
         </View>
       </View>
       <View style={styles.similarBody}>
-        <Text allowFontScaling={false} numberOfLines={2} style={styles.similarCardTitle}>{item.title}</Text>
-        <Text allowFontScaling={false} numberOfLines={1} style={styles.similarMeta}>{item.distanceKm.toFixed(1).replace('.', ',')} km · {item.locationLabel ?? 'Lähellä'}</Text>
+        <Text allowFontScaling={false} numberOfLines={2} ellipsizeMode="tail" style={styles.similarCardTitle}>{item.title}</Text>
+        <Text allowFontScaling={false} numberOfLines={1} ellipsizeMode="tail" style={styles.similarMeta}>{meta}</Text>
       </View>
     </Pressable>
   );
 }
 
+async function getGrantedUserCoordinates(): Promise<Coordinates | null> {
+  try {
+    const permission = await Location.getForegroundPermissionsAsync();
+
+    if (permission.status !== 'granted') {
+      return null;
+    }
+
+    const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+    return {
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function formatDistance(distanceKm: number) {
+  if (!Number.isFinite(distanceKm)) return '';
+
+  if (distanceKm < 1) {
+    return `${Math.max(0.1, distanceKm).toFixed(1).replace('.', ',')} km`;
+  }
+
+  if (distanceKm < 10) {
+    return `${distanceKm.toFixed(1).replace('.', ',')} km`;
+  }
+
+  return `${Math.round(distanceKm)} km`;
+}
+
 function formatPrice(price: number | null, type?: ListingWithRelations['listing_type']) {
+  if (type === 'free') return 'Ilmainen';
+  if (type === 'swap') return 'Vaihto';
+
   if (price === null || price === undefined || price === 0) {
     if (type === 'rent') return 'Sopimuksen mukaan';
     return '0 € / laina';
@@ -849,15 +911,25 @@ const styles = StyleSheet.create({
   },
   emptyImage: {
     alignItems: 'center',
-    backgroundColor: '#F4EDE5',
+    backgroundColor: '#E9E0D3',
     height: HERO_HEIGHT,
     justifyContent: 'center',
+  },
+  emptyImageIcon: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,253,247,0.55)',
+    borderColor: 'rgba(65,72,44,0.10)',
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 76,
+    justifyContent: 'center',
+    width: 76,
   },
   emptyImageText: {
     color: MUTED,
     fontSize: 13,
     fontWeight: '700',
-    marginTop: 10,
+    marginTop: 12,
   },
   heroTopShade: {
     backgroundColor: 'rgba(0,0,0,0.18)',
@@ -952,6 +1024,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: 5,
+    maxWidth: 180,
   },
   metaText: {
     color: MUTED,
@@ -1119,11 +1192,13 @@ const styles = StyleSheet.create({
   weekRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginHorizontal: -2,
     marginTop: 13,
   },
   dayColumn: {
     alignItems: 'center',
-    width: 20,
+    flex: 1,
+    minWidth: 0,
   },
   dayPressed: {
     opacity: 0.75,
@@ -1352,6 +1427,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flex: 1,
     gap: 8,
+    minWidth: 0,
   },
   dateArrow: {
     marginBottom: 16,
@@ -1359,6 +1435,7 @@ const styles = StyleSheet.create({
   dateFieldBlock: {
     flex: 1,
     gap: 6,
+    minWidth: 0,
   },
   dateFieldLabel: {
     color: MUTED,
