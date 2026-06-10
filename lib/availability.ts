@@ -80,6 +80,11 @@ export async function getReservedDateRanges(listingId: string) {
 
 export async function isDateRangeAvailable(listingId: string, startDate: string, endDate: string) {
   const range = normalizeRequestDateRange(startDate, endDate);
+
+  if (!range) {
+    return true;
+  }
+
   const [availabilityRanges, reservedRanges] = await Promise.all([
     getListingAvailability(listingId),
     getReservedDateRanges(listingId),
