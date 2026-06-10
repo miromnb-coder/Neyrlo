@@ -6,18 +6,18 @@ import { colors } from '@/constants/theme';
 
 const tabItems = {
   index: {
-    activeIcon: 'location',
-    inactiveIcon: 'location-outline',
+    activeIcon: 'map',
+    inactiveIcon: 'map-outline',
     label: 'Kartta',
   },
   browse: {
-    activeIcon: 'grid',
-    inactiveIcon: 'grid-outline',
+    activeIcon: 'search',
+    inactiveIcon: 'search-outline',
     label: 'Selaa',
   },
   add: {
-    activeIcon: 'add-circle',
-    inactiveIcon: 'add-circle-outline',
+    activeIcon: 'add',
+    inactiveIcon: 'add',
     label: 'Lisää',
   },
   messages: {
@@ -47,55 +47,54 @@ type TabBarProps = {
 };
 
 function NeyrloTabBar({ descriptors, navigation, state }: TabBarProps) {
-  const activeRouteName = state.routes[state.index]?.name;
-
-  if (activeRouteName === 'add') {
-    return null;
-  }
-
   return (
-    <View style={styles.tabBar}>
-      {state.routes.map((route, index) => {
-        const focused = state.index === index;
-        const config = tabItems[route.name as TabRouteName];
-        const options = descriptors[route.key]?.options;
-        const label = config?.label ?? options?.title ?? route.name;
-        const iconName = (focused ? config?.activeIcon : config?.inactiveIcon) ?? 'ellipse-outline';
-        const color = focused ? colors.primary : '#697068';
+    <View pointerEvents="box-none" style={styles.tabBarWrap}>
+      <View style={styles.tabBar}>
+        {state.routes.map((route, index) => {
+          const focused = state.index === index;
+          const isAdd = route.name === 'add';
+          const config = tabItems[route.name as TabRouteName];
+          const options = descriptors[route.key]?.options;
+          const label = config?.label ?? options?.title ?? route.name;
+          const iconName = (focused ? config?.activeIcon : config?.inactiveIcon) ?? 'ellipse-outline';
+          const color = focused ? colors.primary : '#686D66';
 
-        const onPress = () => {
-          const event = navigation.emit({
-            canPreventDefault: true,
-            target: route.key,
-            type: 'tabPress',
-          });
+          const onPress = () => {
+            const event = navigation.emit({
+              canPreventDefault: true,
+              target: route.key,
+              type: 'tabPress',
+            });
 
-          if (!focused && !event.defaultPrevented) {
-            navigation.navigate(route.name);
-          }
-        };
+            if (!focused && !event.defaultPrevented) {
+              navigation.navigate(route.name);
+            }
+          };
 
-        return (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityState={focused ? { selected: true } : {}}
-            key={route.key}
-            onPress={onPress}
-            style={({ pressed }) => [styles.tabButton, pressed && styles.tabButtonPressed]}
-          >
-            <View style={styles.iconSlot}>
-              <Ionicons
-                color={color}
-                name={iconName as keyof typeof Ionicons.glyphMap}
-                size={focused ? 26 : 25}
-              />
-            </View>
-            <Text allowFontScaling={false} style={[styles.tabLabel, focused && styles.activeTabLabel]}>
-              {label}
-            </Text>
-          </Pressable>
-        );
-      })}
+          return (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={focused ? { selected: true } : {}}
+              key={route.key}
+              onPress={onPress}
+              style={({ pressed }) => [styles.tabButton, isAdd && styles.addTabButton, pressed && styles.tabButtonPressed]}
+            >
+              {isAdd ? (
+                <View style={[styles.addCircle, focused && styles.addCircleActive]}>
+                  <Ionicons color="#FFFFFF" name="add" size={31} />
+                </View>
+              ) : (
+                <View style={styles.iconSlot}>
+                  <Ionicons color={color} name={iconName as keyof typeof Ionicons.glyphMap} size={27} />
+                </View>
+              )}
+              <Text allowFontScaling={false} style={[styles.tabLabel, focused && styles.activeTabLabel, isAdd && styles.addTabLabel]}>
+                {label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 }
@@ -118,45 +117,82 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
-  tabBar: {
-    alignItems: 'flex-start',
-    backgroundColor: '#FFFDF7',
-    borderTopWidth: 0,
+  tabBarWrap: {
     bottom: 0,
-    elevation: 0,
-    flexDirection: 'row',
-    height: 84,
-    justifyContent: 'space-between',
     left: 0,
-    paddingBottom: Platform.OS === 'ios' ? 17 : 12,
-    paddingHorizontal: 12,
-    paddingTop: 8,
+    paddingHorizontal: 0,
     position: 'absolute',
     right: 0,
-    shadowOpacity: 0,
+  },
+  tabBar: {
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(255, 253, 247, 0.97)',
+    borderColor: 'rgba(64, 80, 48, 0.10)',
+    borderTopLeftRadius: 34,
+    borderTopRightRadius: 34,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    elevation: 18,
+    flexDirection: 'row',
+    height: Platform.OS === 'ios' ? 98 : 90,
+    justifyContent: 'space-between',
+    paddingBottom: Platform.OS === 'ios' ? 20 : 14,
+    paddingHorizontal: 10,
+    paddingTop: 16,
+    shadowColor: '#1F261B',
+    shadowOffset: { height: -8, width: 0 },
+    shadowOpacity: 0.08,
+    shadowRadius: 22,
   },
   tabButton: {
     alignItems: 'center',
     flex: 1,
     justifyContent: 'flex-start',
+    minHeight: 62,
+  },
+  addTabButton: {
+    marginTop: -30,
   },
   tabButtonPressed: {
-    opacity: 0.78,
+    opacity: 0.76,
   },
   iconSlot: {
     alignItems: 'center',
-    height: 28,
+    height: 29,
     justifyContent: 'center',
-    marginBottom: -1,
+    marginBottom: 5,
+  },
+  addCircle: {
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    borderColor: 'rgba(255, 253, 247, 0.96)',
+    borderRadius: 999,
+    borderWidth: 3,
+    elevation: 10,
+    height: 64,
+    justifyContent: 'center',
+    marginBottom: 2,
+    shadowColor: '#1F261B',
+    shadowOffset: { height: 7, width: 0 },
+    shadowOpacity: 0.22,
+    shadowRadius: 13,
+    width: 64,
+  },
+  addCircleActive: {
+    backgroundColor: '#3F4E2F',
   },
   tabLabel: {
-    color: '#697068',
-    fontSize: 11.8,
+    color: '#686D66',
+    fontSize: 12.8,
     fontWeight: '700',
-    letterSpacing: -0.06,
-    lineHeight: 15,
+    letterSpacing: -0.08,
+    lineHeight: 16,
+  },
+  addTabLabel: {
+    marginTop: -1,
   },
   activeTabLabel: {
     color: colors.primary,
+    fontWeight: '800',
   },
 });
