@@ -9,6 +9,26 @@ export type ReviewInput = {
 
 export type ReportReason = 'spam' | 'scam' | 'inappropriate' | 'unsafe' | 'other';
 
+export type BlockedUserSummary = {
+  id: string;
+  blockedUserId: string;
+  displayName: string;
+  avatarUrl: string | null;
+  city: string | null;
+  createdAt: string;
+};
+
+type BlockedUserRow = {
+  id: string;
+  blocked_id: string;
+  created_at: string;
+  blocked?: {
+    avatar_url?: string | null;
+    city?: string | null;
+    display_name?: string | null;
+  } | null;
+};
+
 export async function createReview(input: ReviewInput) {
   const {
     data: { user },
@@ -97,6 +117,69 @@ export async function blockUser(blockedUserId: string) {
   if (error && !String(error.message).toLowerCase().includes('duplicate')) {
     throw toAppError(error, 'Käyttäjän blokkaus ei onnistunut.');
   }
+}
+
+export async function getBlockedUsers() {
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError) {
+    throw toAppError(userError, 'Kirjautuneen käyttäjän tarkistus ei onnistunut.');
+  }
+
+  if (!user) {
+    throw new Error('Kirjaudu sisään nähdäksesi blokatut käyttäjät.');
+  }
+
+  const { data, error } = await supabase
+    .from('user_blocks')
+    .select('id, blocked_id, created_at, blocked:profiles!user_blocks_blocked_id_fkey(display_name, avatar_url, city)')
+    .eq('blocker_id', user.id)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw toAppError(error, 'Blokattujen käyttäjien lataus ei onnistunut.');
+  }
+
+  return (data ?? []).map((row) => mapBlockedUser(row as BlockedUserRow));
+}
+
+export async function unblockUser(blockedUserId: string) {
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError) {
+    throw toAppError(userError, 'Kirjautuneen käyttäjän tarkistus ei onnistunut.');
+  }
+
+  if (!user) {
+    throw new Error('Kirjaudu sisään muokataksesi blokkilistaa.');
+  }
+
+  const { error } = await supabase
+    .from('user_blocks')
+    .delete()
+    .eq('blocker_id', user.id)
+    .eq('blocked_id', blockedUserId);
+
+  if (error) {
+    throw toAppError(error, 'Käyttäjän blokin poisto ei onnistunut.');
+  }
+}
+
+function mapBlockedUser(row: BlockedUserRow): BlockedUserSummary {
+  return {
+    avatarUrl: row.blocked?.avatar_url ?? null,
+    blockedUserId: row.blocked_id,
+    city: row.blocked?.city ?? null,
+    createdAt: row.created_at,
+    displayName: row.blocked?.display_name || 'Neyrlo-käyttäjä',
+    id: row.id,
+  };
 }
 
 function toAppError(error: unknown, fallbackMessage: string) {
