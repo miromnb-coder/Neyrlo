@@ -1,4 +1,6 @@
+import { getListingImagePublicUrl } from '@/lib/listingImages';
 import { supabase } from '@/lib/supabase';
+import type { NearbyItem } from '@/types/item';
 
 export type ListingType = 'borrow' | 'rent' | 'swap' | 'free';
 export type ListingStatus = 'draft' | 'active' | 'paused' | 'reserved' | 'completed' | 'archived' | 'deleted';
@@ -35,6 +37,35 @@ export type ListingRecord = {
   published_at: string | null;
 };
 
+export type ListingImageSummary = {
+  id?: string;
+  storage_path: string;
+  sort_order: number;
+  width?: number | null;
+  height?: number | null;
+};
+
+export type ListingWithRelations = ListingRecord & {
+  image_urls: string[];
+  listing_images: ListingImageSummary[];
+  owner_name: string;
+  owner_rating: number;
+};
+
+type ListingRow = ListingRecord & {
+  listing_images?: ListingImageSummary[] | null;
+  profiles?: {
+    display_name?: string | null;
+    rating_average?: number | null;
+  } | null;
+};
+
+const listingSelect = `
+  *,
+  profiles!listings_owner_id_fkey(display_name, rating_average),
+  listing_images(id, storage_path, sort_order, width, height)
+`;
+
 export function toListingType(label: string): ListingType {
   switch (label) {
     case 'Vuokraa':
@@ -46,6 +77,43 @@ export function toListingType(label: string): ListingType {
     case 'Lainaa':
     default:
       return 'borrow';
+  }
+}
+
+export function listingTypeLabel(type: ListingType) {
+  switch (type) {
+    case 'rent':
+      return 'Vuokraa';
+    case 'swap':
+      return 'Vaihda';
+    case 'free':
+      return 'Ilmainen';
+    case 'borrow':
+    default:
+      return 'Lainaa';
+  }
+}
+
+export function categoryIcon(categoryId?: string | null) {
+  switch (categoryId) {
+    case 'tools':
+      return 'construct-outline';
+    case 'outdoors':
+      return 'trail-sign-outline';
+    case 'travel':
+      return 'briefcase-outline';
+    case 'electronics':
+      return 'camera-outline';
+    case 'home':
+      return 'home-outline';
+    case 'sports':
+      return 'football-outline';
+    case 'kids':
+      return 'happy-outline';
+    case 'events':
+      return 'sparkles-outline';
+    default:
+      return 'cube-outline';
   }
 }
 
@@ -143,7 +211,45 @@ export async function updateDraftListing(listingId: string, input: CreateDraftLi
   return data as ListingRecord;
 }
 
+export async function getListingForReview(listingId: string) {
+  const { data, error } = await supabase
+    .from('listings')
+    .select(listingSelect)
+    .eq('id', listingId)
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return mapListingRow(data as ListingRow);
+}
+
+export async function getActiveListings(limit = 50) {
+  const { data, error } = await supabase
+    .from('listings')
+    .select(listingSelect)
+    .eq('status', 'active')
+    .is('deleted_at', null)
+    .order('published_at', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []).map((row) => mapListingRow(row as ListingRow));
+}
+
 export async function publishListing(listingId: string) {
+  const listing = await getListingForReview(listingId);
+  const missingFields = getPublishMissingFields(listing);
+
+  if (missingFields.length > 0) {
+    throw new Error(`Täydennä ennen julkaisua: ${missingFields.join(', ')}.`);
+  }
+
   const { data, error } = await supabase
     .from('listings')
     .update({
@@ -152,12 +258,69 @@ export async function publishListing(listingId: string) {
     })
     .eq('id', listingId)
     .eq('status', 'draft')
-    .select('*')
+    .select(listingSelect)
     .single();
 
   if (error) {
     throw error;
   }
 
-  return data as ListingRecord;
+  return mapListingRow(data as ListingRow);
+}
+
+export function getPublishMissingFields(listing: ListingWithRelations) {
+  const missingFields: string[] = [];
+
+  if (listing.title.trim().length < 2) {
+    missingFields.push('otsikko');
+  }
+
+  if (!listing.description?.trim()) {
+    missingFields.push('kuvaus');
+  }
+
+  if (!listing.category_id) {
+    missingFields.push('kategoria');
+  }
+
+  if (!listing.location_label) {
+    missingFields.push('sijainti');
+  }
+
+  if (listing.image_urls.length === 0) {
+    missingFields.push('vähintään yksi kuva');
+  }
+
+  return missingFields;
+}
+
+export function listingToNearbyItem(listing: ListingWithRelations): NearbyItem {
+  return {
+    accentColor: '#F8F2EA',
+    availability: 'Vapaa tänään',
+    categoryId: listing.category_id ?? undefined,
+    distanceKm: 0,
+    id: listing.id,
+    imageUrl: listing.image_urls[0] ?? 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=420&h=320&fit=crop&auto=format',
+    latitude: listing.location_lat ?? undefined,
+    locationLabel: listing.location_label ?? undefined,
+    longitude: listing.location_lng ?? undefined,
+    mode: listing.listing_type,
+    ownerName: listing.owner_name,
+    priceLabel: listingTypeLabel(listing.listing_type),
+    rating: listing.owner_rating,
+    title: listing.title,
+  };
+}
+
+function mapListingRow(row: ListingRow): ListingWithRelations {
+  const images = [...(row.listing_images ?? [])].sort((a, b) => a.sort_order - b.sort_order);
+
+  return {
+    ...row,
+    image_urls: images.map((image) => getListingImagePublicUrl(image.storage_path)),
+    listing_images: images,
+    owner_name: row.profiles?.display_name || 'Neyrlo-käyttäjä',
+    owner_rating: Number(row.profiles?.rating_average ?? 0),
+  };
 }
