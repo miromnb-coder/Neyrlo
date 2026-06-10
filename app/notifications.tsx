@@ -4,8 +4,12 @@ import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { getConversations, type ConversationSummary } from '@/lib/messages';
-import { getMyListingRequests, requestStatusLabel, type ListingRequestSummary } from '@/lib/requests';
+import {
+  getMyNotificationEvents,
+  markAllNotificationEventsRead,
+  markNotificationEventRead,
+  type NotificationEvent,
+} from '@/lib/notificationEvents';
 
 const BACKGROUND = '#FFFDF7';
 const GREEN = '#55633F';
@@ -17,9 +21,9 @@ const CARD = 'rgba(255, 253, 247, 0.94)';
 
 export default function NotificationsScreen() {
   const router = useRouter();
-  const [requests, setRequests] = useState<ListingRequestSummary[]>([]);
-  const [conversations, setConversations] = useState<ConversationSummary[]>([]);
+  const [events, setEvents] = useState<NotificationEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [markingRead, setMarkingRead] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
   const loadNotifications = useCallback(async () => {
@@ -27,9 +31,7 @@ export default function NotificationsScreen() {
     setFeedback(null);
 
     try {
-      const [requestData, conversationData] = await Promise.all([getMyListingRequests(), getConversations()]);
-      setRequests(requestData);
-      setConversations(conversationData);
+      setEvents(await getMyNotificationEvents(60));
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : 'Ilmoitusten lataus ei onnistunut.');
     } finally {
@@ -43,8 +45,48 @@ export default function NotificationsScreen() {
     }, [loadNotifications]),
   );
 
-  const recentConversations = useMemo(() => conversations.slice(0, 5), [conversations]);
-  const pendingRequests = useMemo(() => requests.filter((request) => request.status === 'pending'), [requests]);
+  const unreadCount = useMemo(() => events.filter((event) => !event.readAt).length, [events]);
+  const messageCount = useMemo(() => events.filter((event) => event.type === 'message').length, [events]);
+  const requestCount = useMemo(() => events.filter((event) => event.type !== 'message').length, [events]);
+
+  const markAllRead = async () => {
+    if (markingRead) return;
+
+    setMarkingRead(true);
+    setFeedback(null);
+
+    try {
+      await markAllNotificationEventsRead();
+      setEvents((current) => current.map((event) => ({ ...event, readAt: event.readAt ?? new Date().toISOString() })));
+      setFeedback('Ilmoitukset merkitty luetuiksi.');
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : 'Lukukuittaus ei onnistunut.');
+    } finally {
+      setMarkingRead(false);
+    }
+  };
+
+  const openEvent = async (event: NotificationEvent) => {
+    if (!event.readAt) {
+      void markNotificationEventRead(event.id);
+      setEvents((current) => current.map((item) => (item.id === event.id ? { ...item, readAt: new Date().toISOString() } : item)));
+    }
+
+    const conversationId = typeof event.data.conversationId === 'string' ? event.data.conversationId : null;
+    const listingId = typeof event.data.listingId === 'string' ? event.data.listingId : null;
+
+    if (conversationId) {
+      router.push({ pathname: '/messages/[id]', params: { id: conversationId } });
+      return;
+    }
+
+    if (listingId) {
+      router.push({ pathname: '/listings/[id]', params: { id: listingId } });
+      return;
+    }
+
+    router.push('/(tabs)/messages');
+  };
 
   return (
     <SafeAreaView edges={['top', 'bottom']} style={styles.screen}>
@@ -64,7 +106,7 @@ export default function NotificationsScreen() {
             <ActivityIndicator color={GREEN} size="small" />
             <Text allowFontScaling={false} style={styles.stateText}>Ladataan ilmoituksia...</Text>
           </View>
-        ) : feedback ? (
+        ) : feedback && events.length === 0 ? (
           <View style={styles.stateCard}>
             <Ionicons color={GREEN} name="information-circle-outline" size={24} />
             <Text allowFontScaling={false} style={styles.stateText}>{feedback}</Text>
@@ -72,26 +114,38 @@ export default function NotificationsScreen() {
         ) : (
           <>
             <View style={styles.summaryCard}>
-              <NotificationStat icon="hourglass-outline" label="Odottaa" value={pendingRequests.length} />
-              <NotificationStat icon="chatbubble-outline" label="Keskustelua" value={conversations.length} />
-              <NotificationStat icon="swap-horizontal-outline" label="Pyyntöä" value={requests.length} />
+              <NotificationStat icon="ellipse-outline" label="Uutta" value={unreadCount} />
+              <NotificationStat icon="chatbubble-outline" label="Viestejä" value={messageCount} />
+              <NotificationStat icon="swap-horizontal-outline" label="Pyyntöjä" value={requestCount} />
             </View>
 
-            <Text allowFontScaling={false} style={styles.sectionTitle}>Tärkeät pyynnöt</Text>
-            {pendingRequests.length === 0 ? (
-              <View style={styles.miniStateCard}>
-                <Text allowFontScaling={false} style={styles.stateText}>Ei uusia pyyntöjä.</Text>
+            <View style={styles.sectionHeader}>
+              <Text allowFontScaling={false} style={styles.sectionTitle}>Tapahtumat</Text>
+              <Pressable disabled={markingRead || unreadCount === 0} onPress={markAllRead} style={({ pressed }) => [styles.readAllButton, (markingRead || unreadCount === 0) && styles.disabledButton, pressed && styles.pressed]}>
+                <Text allowFontScaling={false} style={styles.readAllText}>Merkitse luetuksi</Text>
+              </Pressable>
+            </View>
+
+            {events.length === 0 ? (
+              <View style={styles.emptyCard}>
+                <Ionicons color={GREEN_DARK} name="notifications-outline" size={30} />
+                <Text allowFontScaling={false} style={styles.emptyTitle}>Ei ilmoituksia vielä</Text>
+                <Text allowFontScaling={false} style={styles.stateText}>Uudet viestit, pyynnöt ja lainaustapahtuman päivitykset näkyvät täällä.</Text>
               </View>
             ) : (
               <View style={styles.listStack}>
-                {pendingRequests.map((request) => (
-                  <Pressable key={request.id} onPress={() => router.push('/(tabs)/messages')} style={({ pressed }) => [styles.notificationCard, pressed && styles.pressed]}>
-                    <View style={styles.notificationIcon}>
-                      <Ionicons color="#FFFFFF" name="swap-horizontal-outline" size={20} />
+                {events.map((event) => (
+                  <Pressable key={event.id} onPress={() => void openEvent(event)} style={({ pressed }) => [styles.notificationCard, !event.readAt && styles.unreadCard, pressed && styles.pressed]}>
+                    <View style={[styles.notificationIcon, event.readAt && styles.notificationIconSoft]}>
+                      <Ionicons color={event.readAt ? GREEN_DARK : '#FFFFFF'} name={iconForEvent(event.type)} size={20} />
                     </View>
                     <View style={styles.notificationBody}>
-                      <Text allowFontScaling={false} numberOfLines={1} style={styles.notificationTitle}>{request.listingTitle}</Text>
-                      <Text allowFontScaling={false} numberOfLines={2} style={styles.notificationText}>{request.otherUserName} • {requestStatusLabel(request.status)}</Text>
+                      <View style={styles.notificationTitleRow}>
+                        <Text allowFontScaling={false} numberOfLines={1} style={styles.notificationTitle}>{event.title}</Text>
+                        {!event.readAt && <View style={styles.unreadDot} />}
+                      </View>
+                      <Text allowFontScaling={false} numberOfLines={2} style={styles.notificationText}>{event.body}</Text>
+                      <Text allowFontScaling={false} style={styles.notificationTime}>{formatDate(event.createdAt)}</Text>
                     </View>
                     <Ionicons color={MUTED} name="chevron-forward" size={18} />
                   </Pressable>
@@ -99,25 +153,10 @@ export default function NotificationsScreen() {
               </View>
             )}
 
-            <Text allowFontScaling={false} style={styles.sectionTitle}>Viimeisimmät viestit</Text>
-            {recentConversations.length === 0 ? (
-              <View style={styles.miniStateCard}>
-                <Text allowFontScaling={false} style={styles.stateText}>Ei viestejä vielä.</Text>
-              </View>
-            ) : (
-              <View style={styles.listStack}>
-                {recentConversations.map((conversation) => (
-                  <Pressable key={conversation.id} onPress={() => router.push({ pathname: '/messages/[id]', params: { id: conversation.id } })} style={({ pressed }) => [styles.notificationCard, pressed && styles.pressed]}>
-                    <View style={styles.notificationIconSoft}>
-                      <Ionicons color={GREEN_DARK} name="chatbubble-outline" size={20} />
-                    </View>
-                    <View style={styles.notificationBody}>
-                      <Text allowFontScaling={false} numberOfLines={1} style={styles.notificationTitle}>{conversation.listingTitle}</Text>
-                      <Text allowFontScaling={false} numberOfLines={2} style={styles.notificationText}>{conversation.lastMessageBody}</Text>
-                    </View>
-                    <Ionicons color={MUTED} name="chevron-forward" size={18} />
-                  </Pressable>
-                ))}
+            {!!feedback && events.length > 0 && (
+              <View style={styles.feedbackCard}>
+                <Ionicons color={GREEN_DARK} name="information-circle-outline" size={20} />
+                <Text allowFontScaling={false} style={styles.feedbackText}>{feedback}</Text>
               </View>
             )}
           </>
@@ -137,6 +176,20 @@ function NotificationStat({ icon, label, value }: { icon: keyof typeof Ionicons.
   );
 }
 
+function iconForEvent(type: NotificationEvent['type']): keyof typeof Ionicons.glyphMap {
+  if (type === 'message') return 'chatbubble-outline';
+  if (type === 'request') return 'mail-unread-outline';
+  if (type === 'return_due' || type === 'return_reminder') return 'time-outline';
+  if (type === 'returned' || type === 'request_completed') return 'checkmark-done-outline';
+  return 'swap-horizontal-outline';
+}
+
+function formatDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString('fi-FI', { day: 'numeric', month: 'numeric' }) + ' ' + date.toLocaleTimeString('fi-FI', { hour: '2-digit', minute: '2-digit' });
+}
+
 const styles = StyleSheet.create({
   screen: { backgroundColor: BACKGROUND, flex: 1 },
   topBar: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 24, paddingTop: 8 },
@@ -147,16 +200,27 @@ const styles = StyleSheet.create({
   statItem: { alignItems: 'center', flex: 1, gap: 3 },
   statValue: { color: TEXT, fontSize: 19, fontWeight: '900' },
   statLabel: { color: MUTED, fontSize: 11.5, fontWeight: '800' },
-  sectionTitle: { color: TEXT, fontSize: 18, fontWeight: '900', marginBottom: 10, marginTop: 2 },
+  sectionHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
+  sectionTitle: { color: TEXT, fontSize: 18, fontWeight: '900' },
+  readAllButton: { borderColor: GREEN_DARK, borderRadius: 999, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 7 },
+  readAllText: { color: GREEN_DARK, fontSize: 12.5, fontWeight: '900' },
   listStack: { gap: 10, marginBottom: 20 },
   notificationCard: { alignItems: 'center', backgroundColor: CARD, borderColor: BORDER, borderRadius: 17, borderWidth: 1, flexDirection: 'row', gap: 12, padding: 13 },
+  unreadCard: { borderColor: 'rgba(85, 99, 63, 0.32)' },
   notificationIcon: { alignItems: 'center', backgroundColor: GREEN, borderRadius: 999, height: 38, justifyContent: 'center', width: 38 },
-  notificationIconSoft: { alignItems: 'center', backgroundColor: 'rgba(85, 99, 63, 0.1)', borderRadius: 999, height: 38, justifyContent: 'center', width: 38 },
+  notificationIconSoft: { backgroundColor: 'rgba(85, 99, 63, 0.1)' },
   notificationBody: { flex: 1, minWidth: 0 },
-  notificationTitle: { color: TEXT, fontSize: 14.5, fontWeight: '900' },
+  notificationTitleRow: { alignItems: 'center', flexDirection: 'row', gap: 7 },
+  notificationTitle: { color: TEXT, flex: 1, fontSize: 14.5, fontWeight: '900' },
   notificationText: { color: MUTED, fontSize: 12.8, fontWeight: '700', lineHeight: 18, marginTop: 2 },
+  notificationTime: { color: GREEN_DARK, fontSize: 11.5, fontWeight: '800', marginTop: 5 },
+  unreadDot: { backgroundColor: GREEN, borderRadius: 999, height: 8, width: 8 },
   stateCard: { alignItems: 'center', backgroundColor: CARD, borderColor: BORDER, borderRadius: 20, borderWidth: 1, gap: 8, padding: 24 },
-  miniStateCard: { backgroundColor: CARD, borderColor: BORDER, borderRadius: 16, borderWidth: 1, marginBottom: 20, padding: 16 },
+  emptyCard: { alignItems: 'center', backgroundColor: CARD, borderColor: BORDER, borderRadius: 20, borderWidth: 1, gap: 8, padding: 24 },
+  emptyTitle: { color: TEXT, fontSize: 16, fontWeight: '900' },
   stateText: { color: MUTED, fontSize: 14, fontWeight: '700', lineHeight: 20, textAlign: 'center' },
+  feedbackCard: { alignItems: 'flex-start', backgroundColor: 'rgba(85, 99, 63, 0.08)', borderColor: 'rgba(85, 99, 63, 0.18)', borderRadius: 14, borderWidth: 1, flexDirection: 'row', gap: 9, padding: 13 },
+  feedbackText: { color: GREEN_DARK, flex: 1, fontSize: 13.5, fontWeight: '700', lineHeight: 19 },
+  disabledButton: { opacity: 0.45 },
   pressed: { opacity: 0.78 },
 });
