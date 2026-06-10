@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import type { ListingRequestStatus } from '@/lib/requests';
 
 export type ConversationSummary = {
   id: string;
@@ -19,7 +20,12 @@ export type ConversationMessage = {
 
 export type ConversationDetails = {
   id: string;
+  listingId: string | null;
   listingTitle: string;
+  ownerId: string;
+  requesterId: string;
+  requestId: string | null;
+  requestStatus: ListingRequestStatus | null;
   otherUserName: string;
   messages: ConversationMessage[];
 };
@@ -36,6 +42,7 @@ type ConversationRow = {
   listing_id: string | null;
   owner_id: string;
   requester_id: string;
+  request_id: string | null;
   last_message_at: string | null;
   created_at: string;
   listings?: {
@@ -52,6 +59,7 @@ const conversationSelect = `
   listing_id,
   owner_id,
   requester_id,
+  request_id,
   last_message_at,
   created_at,
   listings(title, listing_images(storage_path, sort_order)),
@@ -98,31 +106,37 @@ export async function createContactForListing(params: { listingId: string; messa
     throw new Error('Et voi lähettää pyyntöä omaan ilmoitukseesi.');
   }
 
-  const { data: request, error: requestError } = await supabase
-    .from('listing_requests')
-    .insert({
-      listing_id: params.listingId,
-      message: messageBody,
-      owner_id: listing.owner_id,
-      requester_id: user.id,
-      status: 'pending',
-    })
-    .select('id')
-    .single();
-
-  if (requestError) {
-    throw toAppError(requestError, 'Pyynnön luonti ei onnistunut.');
-  }
-
   const { data: existingConversation, error: existingConversationError } = await supabase
     .from('conversations')
-    .select('id')
+    .select('id, request_id')
     .eq('listing_id', params.listingId)
     .eq('requester_id', user.id)
     .maybeSingle();
 
   if (existingConversationError) {
     throw toAppError(existingConversationError, 'Keskustelun tarkistus ei onnistunut.');
+  }
+
+  let requestId = existingConversation?.request_id ?? null;
+
+  if (!requestId) {
+    const { data: request, error: requestError } = await supabase
+      .from('listing_requests')
+      .insert({
+        listing_id: params.listingId,
+        message: messageBody,
+        owner_id: listing.owner_id,
+        requester_id: user.id,
+        status: 'pending',
+      })
+      .select('id')
+      .single();
+
+    if (requestError) {
+      throw toAppError(requestError, 'Pyynnön luonti ei onnistunut.');
+    }
+
+    requestId = request.id;
   }
 
   let conversationId = existingConversation?.id;
@@ -133,7 +147,7 @@ export async function createContactForListing(params: { listingId: string; messa
       .insert({
         listing_id: params.listingId,
         owner_id: listing.owner_id,
-        request_id: request.id,
+        request_id: requestId,
         requester_id: user.id,
         status: 'active',
       })
@@ -223,11 +237,32 @@ export async function getConversationDetails(conversationId: string) {
       senderId: message.sender_id,
     }));
 
+  let requestStatus: ListingRequestStatus | null = null;
+
+  if (row.request_id) {
+    const { data: request, error: requestError } = await supabase
+      .from('listing_requests')
+      .select('status')
+      .eq('id', row.request_id)
+      .maybeSingle();
+
+    if (requestError) {
+      throw toAppError(requestError, 'Pyynnön tilan lataus ei onnistunut.');
+    }
+
+    requestStatus = (request?.status as ListingRequestStatus | undefined) ?? null;
+  }
+
   return {
     id: row.id,
+    listingId: row.listing_id,
     listingTitle: summary.listingTitle,
     messages,
     otherUserName: summary.otherUserName,
+    ownerId: row.owner_id,
+    requesterId: row.requester_id,
+    requestId: row.request_id,
+    requestStatus,
   } satisfies ConversationDetails;
 }
 
