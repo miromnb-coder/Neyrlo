@@ -17,15 +17,19 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ItemCard } from '@/components/ItemCard';
 import { useAuth } from '@/lib/auth';
 import { isListingFavorite, toggleFavorite } from '@/lib/favorites';
 import {
+  getActiveListings,
   getListingForReview,
+  listingToNearbyItem,
   listingTypeLabel,
   type ListingWithRelations,
 } from '@/lib/listings';
 import { createContactForListing } from '@/lib/messages';
 import { blockUser, createReview, reportListing, type ReportReason } from '@/lib/safety';
+import type { NearbyItem } from '@/types/item';
 
 const BACKGROUND = '#FFFDF7';
 const GREEN = '#55633F';
@@ -60,6 +64,8 @@ export default function ListingDetailsScreen() {
   const params = useLocalSearchParams<{ id?: string }>();
   const listingId = Array.isArray(params.id) ? params.id[0] : params.id;
   const [listing, setListing] = useState<ListingWithRelations | null>(null);
+  const [similarItems, setSimilarItems] = useState<NearbyItem[]>([]);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('Hei! Onko tämä vielä saatavilla?');
   const [reviewComment, setReviewComment] = useState('Kiitos sujuvasta lainaamisesta!');
@@ -71,22 +77,16 @@ export default function ListingDetailsScreen() {
 
   const isOwnListing = !!listing && listing.owner_id === session?.user.id;
   const categoryLabel = listing?.category_id ? categoryLabels[listing.category_id] ?? 'Muu' : 'Muu';
-  const imageUrl = listing?.image_urls[0];
+  const imageUrl = listing?.image_urls[selectedImageIndex] ?? listing?.image_urls[0];
   const contactButtonLabel = useMemo(() => {
-    if (!listing) {
-      return 'Ota yhteyttä';
-    }
+    if (!listing) return 'Ota yhteyttä';
 
     switch (listing.listing_type) {
-      case 'rent':
-        return 'Kysy vuokrausta';
-      case 'swap':
-        return 'Ehdota vaihtoa';
-      case 'free':
-        return 'Kysy tavarasta';
+      case 'rent': return 'Kysy vuokrausta';
+      case 'swap': return 'Ehdota vaihtoa';
+      case 'free': return 'Kysy tavarasta';
       case 'borrow':
-      default:
-        return 'Pyydä lainaan';
+      default: return 'Pyydä lainaan';
     }
   }, [listing]);
 
@@ -103,7 +103,16 @@ export default function ListingDetailsScreen() {
     try {
       const data = await getListingForReview(listingId);
       setListing(data);
+      setSelectedImageIndex(0);
       setIsFavorite(await isListingFavorite(listingId));
+
+      const activeListings = await getActiveListings(30);
+      setSimilarItems(
+        activeListings
+          .filter((item) => item.id !== data.id && (!!data.category_id ? item.category_id === data.category_id : true))
+          .slice(0, 4)
+          .map(listingToNearbyItem),
+      );
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : 'Ilmoituksen lataus ei onnistunut.');
     } finally {
@@ -116,9 +125,7 @@ export default function ListingDetailsScreen() {
   }, [loadListing]);
 
   const handleFavorite = async () => {
-    if (!listing || safetyLoading) {
-      return;
-    }
+    if (!listing || safetyLoading) return;
 
     setSafetyLoading(true);
     setFeedback(null);
@@ -135,19 +142,13 @@ export default function ListingDetailsScreen() {
   };
 
   const handleContact = async () => {
-    if (!listing || sending || isOwnListing) {
-      return;
-    }
+    if (!listing || sending || isOwnListing) return;
 
     setSending(true);
     setFeedback(null);
 
     try {
-      const conversationId = await createContactForListing({
-        listingId: listing.id,
-        message,
-      });
-
+      const conversationId = await createContactForListing({ listingId: listing.id, message });
       router.push({ pathname: '/messages/[id]', params: { id: conversationId } });
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : 'Yhteydenotto ei onnistunut.');
@@ -157,9 +158,7 @@ export default function ListingDetailsScreen() {
   };
 
   const submitReport = async (reason: ReportReason) => {
-    if (!listing || safetyLoading) {
-      return;
-    }
+    if (!listing || safetyLoading) return;
 
     setSafetyLoading(true);
     setFeedback(null);
@@ -180,9 +179,7 @@ export default function ListingDetailsScreen() {
   };
 
   const openReportMenu = () => {
-    if (!listing) {
-      return;
-    }
+    if (!listing) return;
 
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
@@ -193,58 +190,44 @@ export default function ListingDetailsScreen() {
         },
         (buttonIndex) => {
           const selectedReason = reportReasons[buttonIndex];
-          if (selectedReason) {
-            void submitReport(selectedReason.value);
-          }
+          if (selectedReason) void submitReport(selectedReason.value);
         },
       );
       return;
     }
 
-    Alert.alert(
-      'Raportoi ilmoitus',
-      'Valitse syy raportille.',
-      [
-        ...reportReasons.map((reason) => ({ onPress: () => void submitReport(reason.value), text: reason.label })),
-        { style: 'cancel' as const, text: 'Peruuta' },
-      ],
-    );
+    Alert.alert('Raportoi ilmoitus', 'Valitse syy raportille.', [
+      ...reportReasons.map((reason) => ({ onPress: () => void submitReport(reason.value), text: reason.label })),
+      { style: 'cancel' as const, text: 'Peruuta' },
+    ]);
   };
 
   const handleBlockUser = () => {
-    if (!listing) {
-      return;
-    }
+    if (!listing) return;
 
-    Alert.alert(
-      'Blokkaa käyttäjä?',
-      'Tämä tallentaa blokin käyttäjälle. Voit myöhemmin piilottaa blokatut käyttäjät hauista ja viesteistä.',
-      [
-        { style: 'cancel', text: 'Peruuta' },
-        {
-          onPress: async () => {
-            setSafetyLoading(true);
-            setFeedback(null);
-            try {
-              await blockUser(listing.owner_id);
-              setFeedback('Käyttäjä blokattu.');
-            } catch (error) {
-              setFeedback(error instanceof Error ? error.message : 'Blokkaus ei onnistunut.');
-            } finally {
-              setSafetyLoading(false);
-            }
-          },
-          style: 'destructive',
-          text: 'Blokkaa',
+    Alert.alert('Blokkaa käyttäjä?', 'Käyttäjä tallennetaan blokkilistallesi.', [
+      { style: 'cancel', text: 'Peruuta' },
+      {
+        onPress: async () => {
+          setSafetyLoading(true);
+          setFeedback(null);
+          try {
+            await blockUser(listing.owner_id);
+            setFeedback('Käyttäjä blokattu.');
+          } catch (error) {
+            setFeedback(error instanceof Error ? error.message : 'Blokkaus ei onnistunut.');
+          } finally {
+            setSafetyLoading(false);
+          }
         },
-      ],
-    );
+        style: 'destructive',
+        text: 'Blokkaa',
+      },
+    ]);
   };
 
   const handleReview = async () => {
-    if (!listing || safetyLoading || isOwnListing) {
-      return;
-    }
+    if (!listing || safetyLoading || isOwnListing) return;
 
     setSafetyLoading(true);
     setFeedback(null);
@@ -262,6 +245,11 @@ export default function ListingDetailsScreen() {
     } finally {
       setSafetyLoading(false);
     }
+  };
+
+  const openOwnerProfile = () => {
+    if (!listing) return;
+    router.push({ pathname: '/users/[id]', params: { id: listing.owner_id } });
   };
 
   return (
@@ -286,22 +274,31 @@ export default function ListingDetailsScreen() {
           <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             {imageUrl ? <Image source={{ uri: imageUrl }} style={styles.heroImage} /> : <View style={styles.emptyImage}><Ionicons color={GREEN_DARK} name="image-outline" size={42} /></View>}
 
+            {!!listing && listing.image_urls.length > 1 && (
+              <ScrollView contentContainerStyle={styles.thumbnailRow} horizontal showsHorizontalScrollIndicator={false}>
+                {listing.image_urls.map((uri, index) => (
+                  <Pressable key={`${uri}-${index}`} onPress={() => setSelectedImageIndex(index)} style={[styles.imageThumb, selectedImageIndex === index && styles.imageThumbActive]}>
+                    <Image source={{ uri }} style={styles.imageThumbPhoto} />
+                  </Pressable>
+                ))}
+              </ScrollView>
+            )}
+
             {!!listing && (
               <>
                 <View style={styles.titleCard}>
                   <View style={styles.badgeRow}>
-                    <View style={styles.badge}>
-                      <Text allowFontScaling={false} style={styles.badgeText}>{listingTypeLabel(listing.listing_type)}</Text>
-                    </View>
+                    <View style={styles.badge}><Text allowFontScaling={false} style={styles.badgeText}>{listingTypeLabel(listing.listing_type)}</Text></View>
                     <Text allowFontScaling={false} style={styles.categoryText}>{categoryLabel}</Text>
                   </View>
                   <Text allowFontScaling={false} style={styles.title}>{listing.title}</Text>
-                  <View style={styles.ownerRow}>
+                  <Pressable onPress={openOwnerProfile} style={({ pressed }) => [styles.ownerRow, pressed && styles.pressed]}>
                     <Ionicons color={GREEN_DARK} name="person-circle-outline" size={22} />
                     <Text allowFontScaling={false} style={styles.ownerText}>{listing.owner_name}</Text>
                     <Text allowFontScaling={false} style={styles.star}>★</Text>
                     <Text allowFontScaling={false} style={styles.ownerText}>{listing.owner_rating.toFixed(1)}</Text>
-                  </View>
+                    <Ionicons color={MUTED} name="chevron-forward" size={16} />
+                  </Pressable>
                 </View>
 
                 <View style={styles.infoRow}>
@@ -320,10 +317,7 @@ export default function ListingDetailsScreen() {
                 </View>
 
                 {isOwnListing ? (
-                  <View style={styles.feedbackCard}>
-                    <Ionicons color={GREEN_DARK} name="information-circle-outline" size={20} />
-                    <Text allowFontScaling={false} style={styles.feedbackText}>Tämä on oma ilmoituksesi.</Text>
-                  </View>
+                  <View style={styles.feedbackCard}><Ionicons color={GREEN_DARK} name="information-circle-outline" size={20} /><Text allowFontScaling={false} style={styles.feedbackText}>Tämä on oma ilmoituksesi.</Text></View>
                 ) : (
                   <>
                     <View style={styles.contactCard}>
@@ -338,36 +332,28 @@ export default function ListingDetailsScreen() {
                       <Text allowFontScaling={false} style={styles.sectionTitle}>Arvioi käyttäjä</Text>
                       <View style={styles.ratingPicker}>
                         {[1, 2, 3, 4, 5].map((rating) => (
-                          <Pressable key={rating} onPress={() => setReviewRating(rating)}>
-                            <Ionicons color="#E9B949" name={rating <= reviewRating ? 'star' : 'star-outline'} size={28} />
-                          </Pressable>
+                          <Pressable key={rating} onPress={() => setReviewRating(rating)}><Ionicons color="#E9B949" name={rating <= reviewRating ? 'star' : 'star-outline'} size={28} /></Pressable>
                         ))}
                       </View>
                       <TextInput multiline onChangeText={setReviewComment} placeholder="Kirjoita lyhyt arvio..." placeholderTextColor={MUTED} style={styles.messageInput} value={reviewComment} />
-                      <Pressable disabled={safetyLoading} onPress={handleReview} style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}>
-                        <Text allowFontScaling={false} style={styles.secondaryButtonText}>Tallenna arvio</Text>
-                      </Pressable>
+                      <Pressable disabled={safetyLoading} onPress={handleReview} style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}><Text allowFontScaling={false} style={styles.secondaryButtonText}>Tallenna arvio</Text></Pressable>
                     </View>
 
                     <View style={styles.safetyActions}>
-                      <Pressable onPress={openReportMenu} style={({ pressed }) => [styles.safetyAction, pressed && styles.pressed]}>
-                        <Ionicons color={GREEN_DARK} name="flag-outline" size={20} />
-                        <Text allowFontScaling={false} style={styles.safetyActionText}>Raportoi</Text>
-                      </Pressable>
-                      <Pressable onPress={handleBlockUser} style={({ pressed }) => [styles.safetyAction, styles.dangerSafetyAction, pressed && styles.pressed]}>
-                        <Ionicons color="#9F2E2E" name="ban-outline" size={20} />
-                        <Text allowFontScaling={false} style={styles.dangerSafetyText}>Blokkaa</Text>
-                      </Pressable>
+                      <Pressable onPress={openReportMenu} style={({ pressed }) => [styles.safetyAction, pressed && styles.pressed]}><Ionicons color={GREEN_DARK} name="flag-outline" size={20} /><Text allowFontScaling={false} style={styles.safetyActionText}>Raportoi</Text></Pressable>
+                      <Pressable onPress={handleBlockUser} style={({ pressed }) => [styles.safetyAction, styles.dangerSafetyAction, pressed && styles.pressed]}><Ionicons color="#9F2E2E" name="ban-outline" size={20} /><Text allowFontScaling={false} style={styles.dangerSafetyText}>Blokkaa</Text></Pressable>
                     </View>
                   </>
                 )}
 
-                {!!feedback && (
-                  <View style={styles.feedbackCard}>
-                    <Ionicons color={GREEN_DARK} name="information-circle-outline" size={20} />
-                    <Text allowFontScaling={false} style={styles.feedbackText}>{feedback}</Text>
+                {similarItems.length > 0 && (
+                  <View style={styles.similarSection}>
+                    <Text allowFontScaling={false} style={styles.sectionTitle}>Samankaltaiset ilmoitukset</Text>
+                    <View style={styles.similarList}>{similarItems.map((item) => <ItemCard item={item} key={item.id} onPress={() => router.push({ pathname: '/listings/[id]', params: { id: item.id } })} />)}</View>
                   </View>
                 )}
+
+                {!!feedback && <View style={styles.feedbackCard}><Ionicons color={GREEN_DARK} name="information-circle-outline" size={20} /><Text allowFontScaling={false} style={styles.feedbackText}>{feedback}</Text></View>}
               </>
             )}
           </ScrollView>
@@ -378,12 +364,7 @@ export default function ListingDetailsScreen() {
 }
 
 function InfoPill({ icon, label }: { icon: keyof typeof Ionicons.glyphMap; label: string }) {
-  return (
-    <View style={styles.infoPill}>
-      <Ionicons color={GREEN_DARK} name={icon} size={17} />
-      <Text allowFontScaling={false} numberOfLines={1} style={styles.infoPillText}>{label}</Text>
-    </View>
-  );
+  return <View style={styles.infoPill}><Ionicons color={GREEN_DARK} name={icon} size={17} /><Text allowFontScaling={false} numberOfLines={1} style={styles.infoPillText}>{label}</Text></View>;
 }
 
 function formatPrice(price: number | null) {
@@ -404,6 +385,10 @@ const styles = StyleSheet.create({
   content: { paddingBottom: 30, paddingHorizontal: 24, paddingTop: 20 },
   heroImage: { backgroundColor: '#F8F2EA', borderRadius: 24, height: 270, width: '100%' },
   emptyImage: { alignItems: 'center', backgroundColor: '#F8F2EA', borderRadius: 24, height: 220, justifyContent: 'center' },
+  thumbnailRow: { gap: 9, paddingTop: 10 },
+  imageThumb: { borderColor: 'transparent', borderRadius: 13, borderWidth: 2, height: 62, overflow: 'hidden', width: 70 },
+  imageThumbActive: { borderColor: GREEN },
+  imageThumbPhoto: { height: '100%', width: '100%' },
   titleCard: { backgroundColor: CARD, borderColor: BORDER, borderRadius: 20, borderWidth: 1, marginTop: 16, padding: 18 },
   badgeRow: { alignItems: 'center', flexDirection: 'row', gap: 10, marginBottom: 10 },
   badge: { backgroundColor: GREEN, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
@@ -433,6 +418,8 @@ const styles = StyleSheet.create({
   safetyActionText: { color: GREEN_DARK, fontSize: 14, fontWeight: '900' },
   dangerSafetyAction: { borderColor: 'rgba(159, 46, 46, 0.25)' },
   dangerSafetyText: { color: '#9F2E2E', fontSize: 14, fontWeight: '900' },
+  similarSection: { marginTop: 18 },
+  similarList: { gap: 10 },
   disabledButton: { opacity: 0.7 },
   feedbackCard: { alignItems: 'flex-start', backgroundColor: 'rgba(85, 99, 63, 0.08)', borderColor: 'rgba(85, 99, 63, 0.18)', borderRadius: 14, borderWidth: 1, flexDirection: 'row', gap: 9, marginTop: 14, padding: 13 },
   feedbackText: { color: GREEN_DARK, flex: 1, fontSize: 13.5, fontWeight: '700', lineHeight: 19 },
