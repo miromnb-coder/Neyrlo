@@ -51,4 +51,4 @@ export const nearbyItems: NearbyItem[] = [
   },
 ];
 
-export const filters = ['Kaikki', 'Lainaa', 'Vuokraa', 'Vaihda', 'Ilmainen'] as const;
+export const filters = ['Kaikki', 'Laina', 'Vuokra', 'Vaihda', 'Jaa', 'Kestävä'] as const;
