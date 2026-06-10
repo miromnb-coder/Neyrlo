@@ -120,6 +120,11 @@ export default function ProfileScreen() {
           <StatCard label="Luonnosta" value={counts.draft} />
         </View>
 
+        <View style={styles.quickActions}>
+          <QuickAction icon="heart-outline" label="Suosikit" onPress={() => router.push('/favorites')} />
+          <QuickAction icon="notifications-outline" label="Ilmoitukset" onPress={() => router.push('/notifications')} />
+        </View>
+
         <View style={styles.sectionHeader}>
           <Text allowFontScaling={false} style={styles.sectionTitle}>Omat ilmoitukset</Text>
           <Pressable onPress={() => router.push('/(tabs)/add')} style={styles.addButtonSmall}>
@@ -226,6 +231,16 @@ function StatCard({ label, value }: { label: string; value: number }) {
   );
 }
 
+function QuickAction({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.quickAction, pressed && styles.pressed]}>
+      <Ionicons color={colors.primaryDark} name={icon} size={22} />
+      <Text allowFontScaling={false} style={styles.quickActionText}>{label}</Text>
+      <Ionicons color={colors.textMuted} name="chevron-forward" size={17} />
+    </Pressable>
+  );
+}
+
 function statusBadgeStyle(status: ListingStatus) {
   if (status === 'active') {
     return styles.statusActive;
@@ -296,7 +311,7 @@ const styles = StyleSheet.create({
   star: { color: '#E9B949', fontSize: 13, fontWeight: '900' },
   ratingText: { color: colors.primaryDark, fontSize: 13, fontWeight: '800' },
   ratingMuted: { color: colors.textMuted, fontSize: 12, fontWeight: '600' },
-  statsRow: { flexDirection: 'row', gap: 10, marginBottom: spacing.lg },
+  statsRow: { flexDirection: 'row', gap: 10, marginBottom: spacing.md },
   statCard: {
     alignItems: 'center',
     backgroundColor: colors.surface,
@@ -308,6 +323,19 @@ const styles = StyleSheet.create({
   },
   statValue: { color: colors.primary, fontSize: 22, fontWeight: '900' },
   statLabel: { color: colors.textMuted, fontSize: 11.8, fontWeight: '700', marginTop: 2 },
+  quickActions: { gap: 9, marginBottom: spacing.lg },
+  quickAction: {
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 11,
+    minHeight: 54,
+    paddingHorizontal: 14,
+  },
+  quickActionText: { color: colors.text, flex: 1, fontSize: 15, fontWeight: '900' },
   sectionHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
   sectionTitle: { color: colors.text, fontSize: 20, fontWeight: '900', letterSpacing: -0.25 },
   addButtonSmall: {
