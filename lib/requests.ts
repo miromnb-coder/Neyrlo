@@ -124,6 +124,23 @@ export function requestStatusLabel(status: ListingRequestStatus) {
   }
 }
 
+export function requestStatusDescription(status: ListingRequestStatus | null) {
+  switch (status) {
+    case 'pending':
+      return 'Pyyntö odottaa omistajan vastausta.';
+    case 'accepted':
+      return 'Pyyntö hyväksytty. Sopikaa nouto ja palautus viesteissä.';
+    case 'declined':
+      return 'Pyyntö hylättiin.';
+    case 'cancelled':
+      return 'Pyyntö peruttiin.';
+    case 'completed':
+      return 'Tapahtuma on merkitty valmiiksi. Nyt voitte jättää arvion.';
+    default:
+      return 'Lainaustapahtumaa ei ole vielä aloitettu.';
+  }
+}
+
 function mapRequest(row: RequestRow, currentUserId: string): ListingRequestSummary {
   const role = row.owner_id === currentUserId ? 'owner' : 'requester';
   const otherUserName = role === 'owner' ? row.requester?.display_name : row.owner?.display_name;
