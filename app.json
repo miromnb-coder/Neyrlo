@@ -27,6 +27,13 @@
           "photosPermission": "Neyrlo käyttää kuviasi, jotta voit lisätä tavaran kuvat ilmoitukseen.",
           "cameraPermission": "Neyrlo käyttää kameraa, jotta voit ottaa kuvia tavarasta ilmoitusta varten."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#55633F",
+          "defaultChannel": "default"
+        }
       ]
     ],
     "ios": {
