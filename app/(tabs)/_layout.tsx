@@ -84,7 +84,7 @@ function NeyrloTabBar({ descriptors, navigation, state }: TabBarProps) {
             >
               {isAdd ? (
                 <View style={styles.addCircle}>
-                  <Ionicons color="#FFFFFF" name="add" size={27} />
+                  <Ionicons color="#FFFFFF" name="add" size={25} />
                 </View>
               ) : (
                 <View style={styles.iconSlot}>
@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
     minHeight: 58,
   },
   addTabButton: {
-    marginTop: -24,
+    marginTop: -21,
   },
   tabButtonPressed: {
     opacity: 0.76,
@@ -168,15 +168,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: DARK_OLIVE,
     borderRadius: 999,
-    elevation: 10,
-    height: 56,
+    elevation: 9,
+    height: 52,
     justifyContent: 'center',
     marginBottom: 2,
     shadowColor: DARK_OLIVE_SHADOW,
-    shadowOffset: { height: 6, width: 0 },
-    shadowOpacity: 0.22,
-    shadowRadius: 12,
-    width: 56,
+    shadowOffset: { height: 5, width: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 11,
+    width: 52,
   },
   tabLabel: {
     color: INACTIVE,
