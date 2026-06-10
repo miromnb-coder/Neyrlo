@@ -124,6 +124,10 @@ export default function MessagesScreen() {
                         </View>
                       </View>
                       <Text allowFontScaling={false} style={styles.otherUser}>{request.otherUserName}</Text>
+                      <View style={styles.requestDateRow}>
+                        <Ionicons color={GREEN_DARK} name="calendar-outline" size={15} />
+                        <Text allowFontScaling={false} numberOfLines={1} style={styles.requestDateText}>{request.dateLabel}</Text>
+                      </View>
                       {!!request.message && <Text allowFontScaling={false} numberOfLines={2} style={styles.lastMessage}>{request.message}</Text>}
 
                       {(canOwnerRespond || canRequesterCancel || canComplete) && (
@@ -227,6 +231,8 @@ const styles = StyleSheet.create({
   requestTitle: { color: TEXT, flex: 1, fontSize: 15.5, fontWeight: '900' },
   requestStatusBadge: { backgroundColor: 'rgba(85, 99, 63, 0.1)', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5 },
   requestStatusText: { color: GREEN_DARK, fontSize: 11.5, fontWeight: '900' },
+  requestDateRow: { alignItems: 'center', flexDirection: 'row', gap: 6, marginTop: 7 },
+  requestDateText: { color: GREEN_DARK, flex: 1, fontSize: 12.5, fontWeight: '900' },
   requestActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
   requestAction: { borderColor: BORDER, borderRadius: 999, borderWidth: 1, paddingHorizontal: 13, paddingVertical: 8 },
   requestActionPrimary: { backgroundColor: GREEN, borderColor: GREEN },
