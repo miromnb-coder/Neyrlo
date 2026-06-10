@@ -6,6 +6,7 @@ import {
   ActionSheetIOS,
   ActivityIndicator,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -16,6 +17,21 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+import {
+  createDraftListing,
+  parsePriceAmount,
+  toListingType,
+  updateDraftListing,
+} from '@/lib/listings';
+import {
+  getListingImagePublicUrl,
+  pickListingImages,
+  uploadListingImages,
+  type ListingImageRecord,
+  type SelectedListingImage,
+} from '@/lib/listingImages';
+import { useAuth } from '@/lib/auth';
 
 const ADD_GREEN = '#55633F';
 const ADD_GREEN_DARK = '#3F4E2F';
@@ -40,6 +56,11 @@ type SelectedLocation = {
   source: 'current' | 'later';
 };
 
+type CategoryOption = {
+  id: string;
+  label: string;
+};
+
 const intentOptions: IntentOption[] = [
   { icon: 'leaf-outline', label: 'Lainaa' },
   { icon: 'briefcase-outline', label: 'Vuokraa' },
@@ -47,21 +68,39 @@ const intentOptions: IntentOption[] = [
   { icon: 'gift-outline', label: 'Ilmainen' },
 ];
 
-const categories = ['Työkalut', 'Ulkoilu', 'Matkustus', 'Elektroniikka', 'Koti'];
+const categories: CategoryOption[] = [
+  { id: 'tools', label: 'Työkalut' },
+  { id: 'outdoors', label: 'Ulkoilu' },
+  { id: 'travel', label: 'Matkustus' },
+  { id: 'electronics', label: 'Elektroniikka' },
+  { id: 'home', label: 'Koti' },
+];
 
 export default function AddItemScreen() {
   const router = useRouter();
+  const { session } = useAuth();
   const [intent, setIntent] = useState<ListingIntent>('Lainaa');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [categoryIndex, setCategoryIndex] = useState(-1);
   const [selectedLocation, setSelectedLocation] = useState<SelectedLocation | null>(null);
+  const [selectedImages, setSelectedImages] = useState<SelectedListingImage[]>([]);
+  const [uploadedImages, setUploadedImages] = useState<ListingImageRecord[]>([]);
+  const [draftListingId, setDraftListingId] = useState<string | null>(null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [isPickingImages, setIsPickingImages] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  const selectedCategory = categoryIndex >= 0 ? categories[categoryIndex] : 'Valitse kategoria';
+  const selectedCategory = categoryIndex >= 0 ? categories[categoryIndex].label : 'Valitse kategoria';
+  const selectedCategoryId = categoryIndex >= 0 ? categories[categoryIndex].id : null;
   const locationLabel = isGettingLocation ? 'Haetaan sijaintia...' : selectedLocation?.label ?? 'Valitse sijainti';
+  const imageCount = selectedImages.length + uploadedImages.length;
+  const previewUris = [
+    ...uploadedImages.map((image) => getListingImagePublicUrl(image.storage_path)),
+    ...selectedImages.map((image) => image.uri),
+  ].slice(0, 3);
 
   const cycleCategory = () => {
     setFeedback(null);
@@ -117,7 +156,7 @@ export default function AddItemScreen() {
   };
 
   const openLocationMenu = () => {
-    if (isGettingLocation) {
+    if (isGettingLocation || isSaving) {
       return;
     }
 
@@ -151,12 +190,88 @@ export default function AddItemScreen() {
     ]);
   };
 
-  const handleImagePress = () => {
-    setFeedback('Kuvien lisääminen kytketään myöhemmin. Tämä on vielä käyttöliittymän testitila.');
+  const handleImagePress = async () => {
+    if (isPickingImages || isSaving) {
+      return;
+    }
+
+    setFeedback(null);
+    setIsPickingImages(true);
+
+    try {
+      const images = await pickListingImages(imageCount);
+
+      if (images.length === 0) {
+        return;
+      }
+
+      setSelectedImages((currentImages) => [...currentImages, ...images].slice(0, 10));
+      setFeedback(`${images.length} kuva${images.length === 1 ? '' : 'a'} valittu. Kuvat tallennetaan luonnokseen, kun painat Jatka.`);
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : 'Kuvien valinta ei onnistunut.');
+    } finally {
+      setIsPickingImages(false);
+    }
   };
 
-  const handleContinue = () => {
-    setFeedback('Jatkamista ei ole vielä kytketty. Ilmoitusta ei tallennettu tai julkaistu.');
+  const handleContinue = async () => {
+    if (isSaving) {
+      return;
+    }
+
+    setFeedback(null);
+    setIsSaving(true);
+
+    try {
+      const savedListing = draftListingId
+        ? await updateDraftListing(draftListingId, {
+            categoryId: selectedCategoryId,
+            description,
+            listingType: toListingType(intent),
+            location: selectedLocation?.source === 'current' ? selectedLocation : null,
+            priceAmount: parsePriceAmount(price),
+            title,
+          })
+        : await createDraftListing({
+            categoryId: selectedCategoryId,
+            description,
+            listingType: toListingType(intent),
+            location: selectedLocation?.source === 'current' ? selectedLocation : null,
+            priceAmount: parsePriceAmount(price),
+            title,
+          });
+
+      setDraftListingId(savedListing.id);
+
+      let uploadedCount = 0;
+
+      if (selectedImages.length > 0) {
+        if (!session?.user.id) {
+          throw new Error('Kirjaudu sisään ennen kuvien lataamista.');
+        }
+
+        const uploaded = await uploadListingImages({
+          images: selectedImages,
+          listingId: savedListing.id,
+          startSortOrder: uploadedImages.length,
+          userId: session.user.id,
+        });
+
+        uploadedCount = uploaded.length;
+        setUploadedImages((currentImages) => [...currentImages, ...uploaded]);
+        setSelectedImages([]);
+      }
+
+      setFeedback(
+        uploadedCount > 0
+          ? `Luonnos tallennettu ja ${uploadedCount} kuva${uploadedCount === 1 ? '' : 'a'} ladattu. Ilmoitusta ei julkaistu vielä.`
+          : 'Luonnos tallennettu Supabaseen. Ilmoitusta ei julkaistu vielä.',
+      );
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : 'Luonnoksen tallennus ei onnistunut.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -183,14 +298,31 @@ export default function AddItemScreen() {
         >
           <Pressable onPress={handleImagePress} style={({ pressed }) => [styles.photoCard, pressed && styles.pressed]}>
             <View style={styles.cameraCircle}>
-              <Ionicons color="#FFFFFF" name="camera-outline" size={35} />
+              {isPickingImages ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <Ionicons color="#FFFFFF" name="camera-outline" size={35} />
+              )}
               <View style={styles.cameraPlusBadge}>
                 <Ionicons color={ADD_GREEN} name="add" size={16} />
               </View>
             </View>
 
-            <Text allowFontScaling={false} style={styles.photoTitle}>Lisää kuvia</Text>
-            <Text allowFontScaling={false} style={styles.photoSubtitle}>Lisää jopa 10 kuvaa</Text>
+            <Text allowFontScaling={false} style={styles.photoTitle}>
+              {imageCount > 0 ? `${imageCount} kuva${imageCount === 1 ? '' : 'a'} valittu` : 'Lisää kuvia'}
+            </Text>
+            <Text allowFontScaling={false} style={styles.photoSubtitle}>
+              {imageCount > 0 ? 'Lisää kuvia tai jatka luonnoksen tallennukseen' : 'Lisää jopa 10 kuvaa'}
+            </Text>
+
+            {previewUris.length > 0 && (
+              <View style={styles.previewRow}>
+                {previewUris.map((uri) => (
+                  <Image key={uri} source={{ uri }} style={styles.previewImage} />
+                ))}
+              </View>
+            )}
+
             <View pointerEvents="none" style={styles.leafGhost}>
               <Ionicons color="rgba(85, 99, 63, 0.075)" name="leaf-outline" size={82} />
             </View>
@@ -198,6 +330,7 @@ export default function AddItemScreen() {
 
           <View style={styles.formStack}>
             <FormInputRow
+              editable={!isSaving}
               icon="pricetag-outline"
               label="Otsikko"
               onChangeText={(value) => {
@@ -209,6 +342,7 @@ export default function AddItemScreen() {
             />
 
             <FormInputRow
+              editable={!isSaving}
               icon="document-text-outline"
               label="Kuvaus"
               multiline
@@ -220,7 +354,7 @@ export default function AddItemScreen() {
               value={description}
             />
 
-            <FormActionRow icon="grid-outline" label="Kategoria" onPress={cycleCategory} value={selectedCategory} />
+            <FormActionRow disabled={isSaving} icon="grid-outline" label="Kategoria" onPress={cycleCategory} value={selectedCategory} />
 
             <View style={styles.shareMethodCard}>
               <View style={styles.shareIconSlot}>
@@ -234,6 +368,7 @@ export default function AddItemScreen() {
 
                     return (
                       <Pressable
+                        disabled={isSaving}
                         key={option.label}
                         onPress={() => {
                           setFeedback(null);
@@ -257,6 +392,7 @@ export default function AddItemScreen() {
             </View>
 
             <FormInputRow
+              editable={!isSaving}
               icon="pricetag-outline"
               label="Hinta / korvaus"
               onChangeText={(value) => {
@@ -269,6 +405,7 @@ export default function AddItemScreen() {
             />
 
             <FormActionRow
+              disabled={isSaving}
               icon="location-outline"
               label="Sijainti"
               loading={isGettingLocation}
@@ -284,8 +421,16 @@ export default function AddItemScreen() {
             </View>
           )}
 
-          <Pressable onPress={handleContinue} style={({ pressed }) => [styles.continueButton, pressed && styles.pressed]}>
-            <Text allowFontScaling={false} style={styles.continueText}>Jatka</Text>
+          <Pressable
+            disabled={isSaving}
+            onPress={handleContinue}
+            style={({ pressed }) => [styles.continueButton, isSaving && styles.disabledButton, pressed && styles.pressed]}
+          >
+            {isSaving ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <Text allowFontScaling={false} style={styles.continueText}>Jatka</Text>
+            )}
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -309,6 +454,7 @@ function formatLocationLabel(place?: Location.LocationGeocodedAddress) {
 }
 
 type FormInputRowProps = {
+  editable?: boolean;
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   multiline?: boolean;
@@ -318,7 +464,7 @@ type FormInputRowProps = {
   value: string;
 };
 
-function FormInputRow({ icon, label, multiline, onChangeText, optionalText, placeholder, value }: FormInputRowProps) {
+function FormInputRow({ editable = true, icon, label, multiline, onChangeText, optionalText, placeholder, value }: FormInputRowProps) {
   return (
     <View style={[styles.formRow, multiline && styles.formRowMultiline]}>
       <Ionicons color={ADD_GREEN_DARK} name={icon} size={23} />
@@ -328,6 +474,7 @@ function FormInputRow({ icon, label, multiline, onChangeText, optionalText, plac
           {!!optionalText && <Text allowFontScaling={false} style={styles.optionalText}>{optionalText}</Text>}
         </View>
         <TextInput
+          editable={editable}
           multiline={multiline}
           onChangeText={onChangeText}
           placeholder={placeholder}
@@ -341,6 +488,7 @@ function FormInputRow({ icon, label, multiline, onChangeText, optionalText, plac
 }
 
 type FormActionRowProps = {
+  disabled?: boolean;
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   loading?: boolean;
@@ -348,9 +496,9 @@ type FormActionRowProps = {
   value: string;
 };
 
-function FormActionRow({ icon, label, loading, onPress, value }: FormActionRowProps) {
+function FormActionRow({ disabled, icon, label, loading, onPress, value }: FormActionRowProps) {
   return (
-    <Pressable disabled={loading} onPress={onPress} style={({ pressed }) => [styles.formRow, pressed && styles.pressed]}>
+    <Pressable disabled={disabled || loading} onPress={onPress} style={({ pressed }) => [styles.formRow, pressed && styles.pressed]}>
       <Ionicons color={ADD_GREEN_DARK} name={icon} size={23} />
       <View style={styles.formTextWrap}>
         <Text allowFontScaling={false} style={styles.formLabel}>{label}</Text>
@@ -419,10 +567,11 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     borderStyle: 'dashed',
     borderWidth: 1.25,
-    height: 202,
     justifyContent: 'center',
     marginBottom: 22,
+    minHeight: 202,
     overflow: 'hidden',
+    paddingVertical: 22,
   },
   cameraCircle: {
     alignItems: 'center',
@@ -459,6 +608,19 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '500',
     marginTop: 7,
+    textAlign: 'center',
+  },
+  previewRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 14,
+  },
+  previewImage: {
+    borderColor: 'rgba(85, 99, 63, 0.18)',
+    borderRadius: 10,
+    borderWidth: 1,
+    height: 52,
+    width: 52,
   },
   leafGhost: {
     opacity: 0.9,
@@ -616,6 +778,9 @@ const styles = StyleSheet.create({
     shadowOffset: { height: 9, width: 0 },
     shadowOpacity: 0.075,
     shadowRadius: 16,
+  },
+  disabledButton: {
+    opacity: 0.72,
   },
   continueText: {
     color: '#FFFFFF',
