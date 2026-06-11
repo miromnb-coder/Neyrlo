@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/lib/auth';
@@ -32,6 +32,7 @@ const SOFT_BEIGE = '#F4E8D7';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
   const { session, signOut } = useAuth();
   const [profile, setProfile] = useState<ProfileRecord | null>(null);
   const [listings, setListings] = useState<ListingWithRelations[]>([]);
@@ -41,6 +42,8 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const isCompact = width < 390;
 
   const loadProfile = useCallback(async () => {
     setLoading(true);
@@ -138,28 +141,28 @@ export default function ProfileScreen() {
               )}
             </View>
             <View style={styles.avatarEditButton}>
-              <Ionicons color={DARK_OLIVE} name="pencil-outline" size={17} />
+              <Ionicons color={DARK_OLIVE} name="pencil-outline" size={16} />
             </View>
           </View>
 
           <View style={styles.profileInfo}>
             <Text allowFontScaling={false} numberOfLines={1} ellipsizeMode="tail" style={styles.profileName}>{displayName}</Text>
             <View style={styles.profileMetaRow}>
-              <Ionicons color={MUTED} name="location-outline" size={17} />
+              <Ionicons color={MUTED} name="location-outline" size={16} />
               <Text allowFontScaling={false} numberOfLines={1} ellipsizeMode="tail" style={styles.profileLocation}>{locationLabel}</Text>
             </View>
             <View style={styles.profileRatingRow}>
-              <Ionicons color="#C89C3A" name="star" size={17} />
+              <Ionicons color="#C89C3A" name="star" size={16} />
               <Text allowFontScaling={false} style={styles.profileRating}>{ratingAverage.toFixed(1).replace('.', ',')}</Text>
               <Text allowFontScaling={false} numberOfLines={1} style={styles.profileRatingMuted}>({ratingCount} arviota)</Text>
             </View>
             <View style={styles.verifiedBadge}>
-              <Ionicons color={DARK_OLIVE} name="shield-checkmark-outline" size={15} />
+              <Ionicons color={DARK_OLIVE} name="shield-checkmark-outline" size={14} />
               <Text allowFontScaling={false} numberOfLines={1} style={styles.verifiedText}>{profile?.is_verified ? 'Vahvistettu käyttäjä' : 'Neyrlo-käyttäjä'}</Text>
             </View>
           </View>
 
-          <Ionicons color={MUTED} name="chevron-forward" size={24} style={styles.profileChevron} />
+          <Ionicons color={MUTED} name="chevron-forward" size={23} style={styles.profileChevron} />
         </Pressable>
 
         <View style={styles.statsCard}>
@@ -177,14 +180,19 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.sectionHeader}>
-          <Text allowFontScaling={false} style={styles.sectionTitle}>Omat ilmoitukset</Text>
+          <Text allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82} style={styles.sectionTitle}>Omat ilmoitukset</Text>
           <Pressable onPress={() => router.push('/(tabs)/add')} style={({ pressed }) => [styles.createButton, pressed && styles.pressed]}>
             <Ionicons color={TEXT} name="add" size={17} />
-            <Text allowFontScaling={false} style={styles.createButtonText}>Luo uusi ilmoitus</Text>
+            <Text allowFontScaling={false} numberOfLines={1} style={styles.createButtonText}>{isCompact ? 'Luo uusi' : 'Luo uusi ilmoitus'}</Text>
           </Pressable>
         </View>
 
-        <View style={styles.filterRow}>
+        <ScrollView
+          contentContainerStyle={styles.filterContent}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filterScroll}
+        >
           {filters.map((filter) => {
             const selected = selectedFilter === filter.value;
 
@@ -198,7 +206,7 @@ export default function ProfileScreen() {
               </Pressable>
             );
           })}
-        </View>
+        </ScrollView>
 
         {loading ? (
           <StateCard icon="person-circle-outline" text="Ladataan profiilia..." />
@@ -244,7 +252,7 @@ function StatItem({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap
   return (
     <View style={styles.statItem}>
       <View style={styles.statIconCircle}>
-        <Ionicons color={DARK_OLIVE} name={icon} size={22} />
+        <Ionicons color={DARK_OLIVE} name={icon} size={20} />
       </View>
       <View style={styles.statTextBlock}>
         <Text allowFontScaling={false} style={styles.statValue}>{value}</Text>
@@ -270,16 +278,16 @@ function QuickActionCard({
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.quickCard, pressed && styles.pressed]}>
       <View style={styles.quickIconCircle}>
-        <Ionicons color={DARK_OLIVE} name={icon} size={25} />
+        <Ionicons color={DARK_OLIVE} name={icon} size={23} />
         {!!badge && (
           <View style={styles.notificationBadge}>
             <Text allowFontScaling={false} style={styles.notificationBadgeText}>{badge > 9 ? '9+' : badge}</Text>
           </View>
         )}
       </View>
-      <Text allowFontScaling={false} numberOfLines={1} style={styles.quickTitle}>{label}</Text>
+      <Text allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.78} style={styles.quickTitle}>{label}</Text>
       <Text allowFontScaling={false} numberOfLines={2} style={styles.quickSubtitle}>{subtitle}</Text>
-      <Ionicons color={MUTED} name="chevron-forward" size={21} style={styles.quickChevron} />
+      <Ionicons color={MUTED} name="chevron-forward" size={18} style={styles.quickChevron} />
     </Pressable>
   );
 }
@@ -352,16 +360,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingBottom: 122,
+    paddingBottom: 150,
     paddingHorizontal: 18,
-    paddingTop: 10,
+    paddingTop: 8,
   },
   brand: {
     color: MUTED,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
-    letterSpacing: 4,
-    marginBottom: 28,
+    letterSpacing: 4.5,
+    marginBottom: 24,
     textAlign: 'center',
   },
   profileCard: {
@@ -371,10 +379,11 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     borderWidth: 1,
     flexDirection: 'row',
-    gap: 18,
-    minHeight: 150,
+    gap: 16,
+    minHeight: 138,
     overflow: 'hidden',
-    padding: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
     position: 'relative',
     shadowColor: DARK_OLIVE_DARK,
     shadowOffset: { height: 8, width: 0 },
@@ -383,22 +392,22 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   profileDecorLarge: {
-    backgroundColor: 'rgba(65, 72, 44, 0.06)',
+    backgroundColor: 'rgba(65, 72, 44, 0.055)',
     borderRadius: 999,
-    bottom: -42,
-    height: 118,
+    bottom: -34,
+    height: 110,
     position: 'absolute',
-    right: -18,
-    width: 164,
+    right: -42,
+    width: 150,
   },
   profileDecorSmall: {
-    backgroundColor: 'rgba(244, 232, 215, 0.65)',
+    backgroundColor: 'rgba(244, 232, 215, 0.38)',
     borderRadius: 999,
-    height: 80,
+    height: 72,
     position: 'absolute',
-    right: 72,
-    top: 38,
-    width: 80,
+    right: 88,
+    top: 42,
+    width: 72,
   },
   avatarWrap: {
     position: 'relative',
@@ -406,11 +415,11 @@ const styles = StyleSheet.create({
   avatarCircle: {
     alignItems: 'center',
     backgroundColor: '#E9E0D3',
-    borderRadius: 52,
-    height: 104,
+    borderRadius: 44,
+    height: 88,
     justifyContent: 'center',
     overflow: 'hidden',
-    width: 104,
+    width: 88,
   },
   avatarImage: {
     height: '100%',
@@ -419,17 +428,17 @@ const styles = StyleSheet.create({
   },
   avatarInitial: {
     color: DARK_OLIVE,
-    fontSize: 34,
+    fontSize: 30,
     fontWeight: '900',
   },
   avatarEditButton: {
     alignItems: 'center',
     backgroundColor: BACKGROUND,
     borderColor: BORDER,
-    borderRadius: 17,
+    borderRadius: 16,
     borderWidth: 1,
-    bottom: 2,
-    height: 34,
+    bottom: 0,
+    height: 32,
     justifyContent: 'center',
     position: 'absolute',
     right: -2,
@@ -437,49 +446,49 @@ const styles = StyleSheet.create({
     shadowOffset: { height: 4, width: 0 },
     shadowOpacity: 0.09,
     shadowRadius: 8,
-    width: 34,
+    width: 32,
     elevation: 2,
   },
   profileInfo: {
     flex: 1,
     minWidth: 0,
-    paddingRight: 24,
+    paddingRight: 22,
   },
   profileName: {
     color: TEXT,
     fontFamily: serifFont,
-    fontSize: 27,
+    fontSize: 25,
     fontWeight: Platform.OS === 'ios' ? '500' : '700',
-    letterSpacing: -0.48,
-    lineHeight: 32,
+    letterSpacing: -0.44,
+    lineHeight: 30,
   },
   profileMetaRow: {
     alignItems: 'center',
     flexDirection: 'row',
     gap: 7,
-    marginTop: 8,
+    marginTop: 7,
   },
   profileLocation: {
     color: MUTED,
     flex: 1,
-    fontSize: 13.5,
+    fontSize: 13,
     fontWeight: '600',
   },
   profileRatingRow: {
     alignItems: 'center',
     flexDirection: 'row',
     gap: 6,
-    marginTop: 8,
+    marginTop: 7,
   },
   profileRating: {
     color: TEXT,
-    fontSize: 13.5,
+    fontSize: 13,
     fontWeight: '800',
   },
   profileRatingMuted: {
     color: MUTED,
     flexShrink: 1,
-    fontSize: 13.5,
+    fontSize: 13,
     fontWeight: '600',
   },
   verifiedBadge: {
@@ -489,20 +498,20 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     flexDirection: 'row',
     gap: 6,
-    marginTop: 10,
+    marginTop: 9,
     maxWidth: '100%',
     paddingHorizontal: 10,
-    paddingVertical: 7,
+    paddingVertical: 6,
   },
   verifiedText: {
     color: DARK_OLIVE,
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: '700',
   },
   profileChevron: {
     position: 'absolute',
-    right: 18,
-    top: 24,
+    right: 16,
+    top: 22,
   },
   statsCard: {
     alignItems: 'center',
@@ -511,9 +520,9 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     borderWidth: 1,
     flexDirection: 'row',
-    height: 82,
-    marginTop: 18,
-    paddingHorizontal: 18,
+    height: 76,
+    marginTop: 16,
+    paddingHorizontal: 12,
     shadowColor: DARK_OLIVE_DARK,
     shadowOffset: { height: 6, width: 0 },
     shadowOpacity: 0.045,
@@ -524,39 +533,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
     flexDirection: 'row',
-    gap: 10,
+    gap: 8,
     justifyContent: 'center',
+    minWidth: 0,
   },
   statIconCircle: {
     alignItems: 'center',
     backgroundColor: SOFT_GREEN,
-    borderRadius: 24,
-    height: 48,
+    borderRadius: 21,
+    height: 42,
     justifyContent: 'center',
-    width: 48,
+    width: 42,
   },
   statTextBlock: {
     minWidth: 0,
   },
   statValue: {
     color: TEXT,
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '800',
   },
   statLabel: {
     color: MUTED,
-    fontSize: 12,
+    fontSize: 11.2,
     fontWeight: '600',
     marginTop: 1,
   },
   statDivider: {
     backgroundColor: BORDER,
-    height: 42,
+    height: 40,
     width: 1,
   },
   quickCardsRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
     marginTop: 18,
   },
   quickCard: {
@@ -565,8 +575,8 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     borderWidth: 1,
     flex: 1,
-    height: 132,
-    padding: 16,
+    height: 124,
+    padding: 14,
     position: 'relative',
     shadowColor: DARK_OLIVE_DARK,
     shadowOffset: { height: 6, width: 0 },
@@ -577,63 +587,66 @@ const styles = StyleSheet.create({
   quickIconCircle: {
     alignItems: 'center',
     backgroundColor: SOFT_GREEN,
-    borderRadius: 24,
-    height: 48,
+    borderRadius: 22,
+    height: 44,
     justifyContent: 'center',
-    width: 48,
+    width: 44,
   },
   notificationBadge: {
     alignItems: 'center',
     backgroundColor: DARK_OLIVE,
     borderColor: CARD,
-    borderRadius: 11,
+    borderRadius: 10.5,
     borderWidth: 1,
-    height: 22,
+    height: 21,
     justifyContent: 'center',
     position: 'absolute',
     right: -7,
     top: -7,
-    width: 22,
+    width: 21,
   },
   notificationBadgeText: {
     color: '#FFFFFF',
-    fontSize: 10.5,
+    fontSize: 10.2,
     fontWeight: '900',
   },
   quickTitle: {
     color: TEXT,
     fontFamily: serifFont,
-    fontSize: 18,
+    fontSize: 16.5,
     fontWeight: Platform.OS === 'ios' ? '500' : '700',
-    letterSpacing: -0.2,
-    marginTop: 14,
+    letterSpacing: -0.18,
+    lineHeight: 20,
+    marginTop: 12,
   },
   quickSubtitle: {
     color: MUTED,
-    fontSize: 12,
+    fontSize: 11.4,
     fontWeight: '600',
-    lineHeight: 16,
-    marginTop: 5,
-    paddingRight: 18,
+    lineHeight: 15,
+    marginTop: 4,
+    paddingRight: 14,
   },
   quickChevron: {
-    bottom: 18,
+    bottom: 16,
     position: 'absolute',
-    right: 14,
+    right: 12,
   },
   sectionHeader: {
     alignItems: 'center',
     flexDirection: 'row',
+    gap: 10,
     justifyContent: 'space-between',
-    marginTop: 26,
+    marginTop: 28,
   },
   sectionTitle: {
     color: TEXT,
+    flex: 1,
     fontFamily: serifFont,
-    fontSize: 25,
+    fontSize: 24,
     fontWeight: Platform.OS === 'ios' ? '500' : '700',
-    letterSpacing: -0.4,
-    lineHeight: 31,
+    letterSpacing: -0.38,
+    lineHeight: 30,
   },
   createButton: {
     alignItems: 'center',
@@ -642,19 +655,24 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
     flexDirection: 'row',
-    gap: 7,
-    height: 38,
-    paddingHorizontal: 14,
+    gap: 6,
+    height: 36,
+    paddingHorizontal: 12,
   },
   createButtonText: {
     color: TEXT,
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: '700',
   },
-  filterRow: {
-    flexDirection: 'row',
-    gap: 10,
+  filterScroll: {
+    marginLeft: -18,
+    marginRight: -18,
     marginTop: 16,
+  },
+  filterContent: {
+    gap: 10,
+    paddingHorizontal: 18,
+    paddingRight: 18,
   },
   filterChip: {
     alignItems: 'center',
@@ -662,14 +680,15 @@ const styles = StyleSheet.create({
     borderColor: BORDER,
     borderRadius: 999,
     borderWidth: 1,
-    flex: 1,
     height: 38,
     justifyContent: 'center',
-    paddingHorizontal: 10,
+    minWidth: 112,
+    paddingHorizontal: 20,
   },
   filterChipActive: {
     backgroundColor: DARK_OLIVE,
     borderColor: DARK_OLIVE,
+    minWidth: 110,
   },
   filterText: {
     color: MUTED,
@@ -690,8 +709,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     flexDirection: 'row',
-    gap: 14,
-    minHeight: 98,
+    gap: 12,
+    minHeight: 96,
     padding: 10,
     shadowColor: DARK_OLIVE_DARK,
     shadowOffset: { height: 5, width: 0 },
@@ -703,10 +722,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#F4EDE5',
     borderRadius: 11,
-    height: 76,
+    height: 74,
     justifyContent: 'center',
     overflow: 'hidden',
-    width: 118,
+    width: 112,
   },
   thumbnail: {
     height: '100%',
@@ -720,9 +739,9 @@ const styles = StyleSheet.create({
   listingTitle: {
     color: TEXT,
     fontFamily: serifFont,
-    fontSize: 17,
+    fontSize: 16.5,
     fontWeight: Platform.OS === 'ios' ? '500' : '700',
-    letterSpacing: -0.2,
+    letterSpacing: -0.18,
     lineHeight: 21,
   },
   listingMetaRow: {
@@ -772,6 +791,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingBottom: 4,
     paddingTop: 2,
+    width: 54,
   },
   listingActionBottom: {
     alignItems: 'center',
